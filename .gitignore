@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Secrets (TMDB key later)
+.env
+
+# Python
+__pycache__/
+.venv/
+
+# Private Douban exports (kept local, never committed)
+raw/
