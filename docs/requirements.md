@@ -69,26 +69,7 @@ planned. TMDB data is refreshed at least every 6 months.
   watched films/TV, none on books; not useful for the site, left out of the output but
   still in the raw export).
 - **Later:**
-  - A tool to record new books, films and TV myself (separate project).
-
-## Decisions log
-
-| Date | Decision | Reason |
-|------|----------|--------|
-| 2026-11-18 | Split the project: v1 is the Library page from the export; the recording tool comes later | Keep v1 small and clear |
-| 2026-11-18 | One-time export, no re-export; add new items by hand | Douban won't be used for new records |
-| 2026-11-18 | Only finished items in v1 | That's what the Library is for |
-| 2026-11-18 | Categories: book, manga, film, TV | Same types the site already uses |
-| 2026-11-18 | Auto-guess types, then fix by hand | ~2,200 items is too many to mark from scratch |
-| 2026-11-18 | Go live with placeholders, add book covers over time | Douban links are blocked, Open Library has few of these editions, and hand-saving everything would take many hours |
-| 2026-11-18 | Try TMDB for film and TV covers | ~1,760 covers by hand is too much; TMDB is free for non-commercial use and searches by title + year |
-| 2026-11-18 | Don't store TMDB cover images; show them from TMDB's image server | Avoids keeping image copies under the 6-month rule, and avoids storing ~1,700 files |
-| 2026-11-18 | Keep every field from the export; decide later what to show | Costs nothing and can't easily be recovered later |
-| 2026-11-18 | Drop "series name → manga"; all books start as "book", manga marked by hand | 297 of 472 read books have a series, mostly publisher series (东野圭吾作品, 图灵交互设计丛书), so the rule would be mostly wrong |
-| 2026-11-18 | Each TV season is its own item | Matches how Douban records them, each with its own date, rating and comment |
-| 2026-11-18 | New JSON output with full data, one file per category | Richer than the current `data/library.ts`; each category can be loaded on its own |
-| 2026-11-18 | Leave tags out of the output JSON | Most items have none and the site won't use them; the raw export still has them |
-| 2026-11-18 | First step is preparing the data well in this project; connecting it to the website comes later | Get the data right before any page work |
+  - A tool to record new books, films and TV myself, in this same repo, that updates the website.
 
 ## Open questions
 
