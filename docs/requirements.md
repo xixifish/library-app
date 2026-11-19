@@ -1,6 +1,6 @@
 # Requirements: Douban Library
 
-Last updated: 2026-11-19 · Kickoff: short
+Last updated: 2026-11-20 · Kickoff: short
 
 ## Core need
 
@@ -41,8 +41,49 @@ Read on 2026-11-18. My reading, not legal advice.
 | Books I've marked | Douban list + detail pages, merged into `raw/books.json` (by `merge_books.py`, kept outside the repo) | One-time export, already done | My own data | Yes: 807 records (472 read, 331 want, 4 reading). ISBN on 806, stars on 467, comments on 317. Authors, publisher, date, pages, series as separate fields. Series on 419. No book/manga type. |
 | Covers via Douban image links | Douban (`doubanCover` in the book data) | Refused when requested from another site (403) | n/a | Yes: one book cover link tested |
 | Book covers by ISBN | Open Library | Public | Not checked | Yes: only 3 of 15 sampled read books had a cover (mostly Chinese/Taiwanese editions) |
-| Film and TV posters | TMDB API, search by title + year | Free API key from TMDB account settings | Yes, non-commercial with attribution; no keeping data over 6 months (see rules above) | Not yet: docs read 2026-11-18, no live search without a key |
+| Film and TV posters | TMDB API, `/search/multi` by original title or title (see TMDB matching) | Free API key from TMDB account settings, sent as `Authorization: Bearer <Read Access Token>` | Yes, non-commercial with attribution; no keeping data over 6 months (see rules above) | Yes: 7 titles searched by hand on 2026-11-20, 6 matched by the rule, 1 needs a person |
 | Book covers (manga included) | Downloaded by me, by hand | Manual | My call | n/a |
+
+## TMDB matching
+
+Decided 2026-11-20, after testing 7 titles by hand with curl.
+
+- **Query:** `originalTitle` if present, else `title`. For a TV season, remove
+  "Season X" / "第X季" from the query and keep the season number.
+- **Endpoint:** `/search/multi` with `language=zh-CN`. It returns films and TV
+  together, each with a `media_type`, so the match decides film or TV. Skip
+  `person` results. Films use `title` / `release_date`, TV uses `name` /
+  `first_air_date`.
+- **Accept:** the first result whose year is within 1 of the year in Douban's `info`.
+  A 1-year gap is normal: 黑炮事件 is 1986 on Douban and 1985 on TMDB.
+- **TV seasons:** after finding the show, get `/tv/{id}` and check the season's own
+  `air_date` against Douban's date, not the show's `first_air_date`. Seasons have
+  their own `poster_path`.
+- **Manual list** (a person picks the match, nothing is guessed):
+  - no result from TMDB;
+  - no result within 1 year of Douban's year;
+  - no date in Douban's `info` (15 finished items), so no year to check.
+
+  A missing `originalTitle` alone is not a reason: ~243 of the 253 finished items
+  without one are Chinese-language, and their `title` is the original title.
+- **Shown in the original language** (decided 2026-11-20):
+  - Title: Douban's `originalTitle`, else `title` (then the Chinese title is the
+    original). It's my own data, so the 6-month TMDB rule doesn't apply to it.
+  - Poster: after matching, request the details (`/movie/{id}` or `/tv/{id}`) with
+    `language=<original_language>` from the match, and use that `poster_path`.
+    Checked on 直到T恤干透 (322570): `ja` and `zh-CN` give different posters.
+- **Not needed:** full-width characters (`Ｔ`) match the same as normal ones; running
+  time from `info` isn't used unless ties between a film and a show turn up.
+
+| Douban title | Query | Result |
+|---|---|---|
+| 玛蒂尔达 | 玛蒂尔达 / Matilda | ✓ same film (10830) with both |
+| 流人 第六季 | 流人 / Slow Horses | ✗ right show only #18 / ✓ only result (95480); season 6 `air_date` matches Douban exactly |
+| 铁拳教育 | 참교육 / 铁拳教育 | ✓ tv (276161) with both; 3 films in results fail the year check |
+| 直到T恤干透 | Ｔシャツが乾くまで | ✓ tv (322570), full-width and normal `T` same result |
+| 黑炮事件 | 黑炮事件 (no original title) | ✓ film (176643), 1985 vs 1986; a 2019 video essay ruled out by year |
+| 哀乐中年 | 哀乐中年 (no original title) | ✓ film (176628), 1949 |
+| 杨门女将 | 杨门女将 (no date) | ? three exact-name results (2001 tv, 1981 tv, 1960 film); needs a person |
 
 **How fresh it needs to be:** my own records are frozen at the export date
 (2026-11-12), with new items added by hand until a recording tool exists. No re-export
@@ -56,6 +97,8 @@ planned. TMDB data is refreshed at least every 6 months.
   - Every finished item (read/watched) listed under its category.
   - Film or TV for each film/TV item: an automatic first guess, then I fix mistakes by
     hand. A TMDB match tells film from TV; otherwise "第X季" → TV.
+  - Film/TV items that TMDB can't match safely go on a manual list for me to check,
+    instead of getting a guessed poster (rules in TMDB matching).
   - Each TV season is its own item (Douban lists seasons separately), not grouped
     under one show.
   - Output: one JSON file per category (book, film, TV) with the most complete
@@ -66,15 +109,22 @@ planned. TMDB data is refreshed at least every 6 months.
   - TMDB credit (logo + notice) on the site.
   - Ratings and comments: optional, may or may not show.
 - **Out:** want-to-read/watch items, in-progress items, tags (only on 471 of 1,762
-  watched films/TV, none on books; not useful for the site, left out of the output but
+  watched films/TV and 147 of 472 read books; not useful for the site, left out of the output but
   still in the raw export).
 - **Later:**
   - A tool to record new books, films and TV myself, in this same repo, that updates the website.
 
 ## Open questions
 
-- [ ] How well does TMDB match my titles, especially Chinese ones? Test ~20 films and
-  TV shows once I have a key.
+- [x] How well does TMDB match my titles, especially Chinese ones? Answered
+  2026-11-20 by 7 hand searches; the rule is in TMDB matching. Still to watch when the
+  script runs on everything: how long the manual list gets, and whether a wrong match
+  slips through with the right year.
+- [x] Posters in Chinese or in the original language? Original language, titles too
+  (see TMDB matching).
+- [x] Show Douban's Chinese title as a smaller second line under the original title?
+  No: only the original title is shown (decided 2026-11-20).
+- [ ] For a TV season: show the season's poster or the show's poster?
 - [ ] Confirm in TMDB's image docs that linking to their image server is the intended use.
 - [ ] Does saving TMDB ids or poster addresses count as keeping data? If yes, how and
   how often to refresh (at least every 6 months).
