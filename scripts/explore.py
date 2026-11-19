@@ -1,11 +1,18 @@
 import json
+import re
+from collections import Counter
+from datetime import datetime
+from pathlib import Path
 
-with open("raw/books.json", encoding="utf-8") as f:
+ROOT = Path(__file__).resolve().parent.parent  # scripts/ → library-app/
+RAW = ROOT / "raw"
+
+with open(RAW / "books.json", encoding="utf-8") as f:
     books = json.load(f)
 
 print(json.dumps(books[0], indent=2, ensure_ascii=False))
 
-with open("raw/movies.json", encoding="utf-8") as f:
+with open(RAW / "movies.json", encoding="utf-8") as f:
     movies_data = json.load(f)
 
 movies = movies_data["records"]
@@ -32,16 +39,12 @@ for movie in movies:
 print(movie_properties)
 
 # Check status
-from collections import Counter
-
 print(Counter(book.get("status") for book in books))
 print(Counter(movie.get("status") for movie in movies))
 
 # Check `markedAt`
 # 1. What are the earliest and latest dates?
 # 2. Which records are missing one?
-from datetime import datetime
-
 # Books
 book_markedAts = []
 for book in books:
@@ -50,7 +53,7 @@ for book in books:
         "title": book.get("title"),
     }
     marked_at = book.get("markedAt")
-    if marked_at == "":
+    if not marked_at:  # Covers marked_at is "", key is none or missing
         new_book_dict["markedAt"] = None
     else:
         new_book_dict["markedAt"] = datetime.strptime(marked_at, "%Y-%m-%d").date()
@@ -95,3 +98,61 @@ for movie_markedAt in movie_markedAts:
 print("info data of 5 movie records:")
 for movie in movies[:5]:
     print(movie.get("info"))
+
+
+# --- Step 1, remaining checks ---
+# v1 only shows finished items, so from here on look at `collect` records only.
+finished_books = [book for book in books if book.get("status") == "collect"]
+finished_movies = [movie for movie in movies if movie.get("status") == "collect"]
+print(f"\nFinished books: {len(finished_books)}, finished movies: {len(finished_movies)}")
+
+
+# 1. Which fields are filled in, among finished items only?
+def count_filled(records):
+    counts = {}
+    for record in records:
+        for key, value in record.items():
+            counts[key] = counts.get(key, 0)
+            if value not in ["", [], None]:
+                counts[key] += 1
+    return counts
+
+
+print("Finished books, filled fields:", count_filled(finished_books))
+print("Finished movies, filled fields:", count_filled(finished_movies))
+
+print("Finished books without a title:")
+for book in finished_books:
+    if not book.get("title"):
+        print(
+            book.get("subjectId"),
+            book.get("isbn"),
+            book.get("authors"),
+            f"https://book.douban.com/subject/{book.get('subjectId')}",
+        )
+
+# 2. What does `info` start with? The year is needed for TMDB search.
+#    - full date:    "1996-08-02(美国) / ..."
+#    - partial date: "2001(中国大陆) / ..." or "2004-09(柏林电影节) / ..."
+#    - no date:      starts with a name or a country
+FULL_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+PARTIAL_DATE = re.compile(r"\d{4}(-\d{2})?(?!-)")
+
+info_groups = {"full date": [], "partial date": [], "no date": []}
+for movie in finished_movies:
+    info = movie.get("info") or ""
+    if FULL_DATE.match(info):
+        info_groups["full date"].append(movie)
+    elif PARTIAL_DATE.match(info):
+        info_groups["partial date"].append(movie)
+    else:
+        info_groups["no date"].append(movie)
+
+for group, group_movies in info_groups.items():
+    print(f"\n`info` starts with {group}: {len(group_movies)}")
+    for movie in group_movies[:5]:
+        print(" ", movie.get("title"), "|", (movie.get("info") or "")[:50])
+
+# 3. The movie `cover` field: is it ever filled in?
+movies_with_cover = [movie for movie in movies if movie.get("cover")]
+print(f"\nMovies with a `cover`: {len(movies_with_cover)} of {len(movies)}")
