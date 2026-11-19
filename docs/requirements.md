@@ -1,11 +1,11 @@
 # Requirements: Douban Library
 
-Last updated: 2026-11-18 · Kickoff: short
+Last updated: 2026-11-19 · Kickoff: short
 
 ## Core need
 
 Show everything I've finished reading and watching, taken from my Douban export,
-on my website's Library page, grouped into book, manga, film and TV.
+on my website's Library page, grouped into book, film and TV.
 
 - **Problem:** my Douban history (~2,200 finished items) lives only on Douban. The
   website's Library shows 7 items I enter by hand.
@@ -42,7 +42,7 @@ Read on 2026-11-18. My reading, not legal advice.
 | Covers via Douban image links | Douban (`doubanCover` in the book data) | Refused when requested from another site (403) | n/a | Yes: one book cover link tested |
 | Book covers by ISBN | Open Library | Public | Not checked | Yes: only 3 of 15 sampled read books had a cover (mostly Chinese/Taiwanese editions) |
 | Film and TV posters | TMDB API, search by title + year | Free API key from TMDB account settings | Yes, non-commercial with attribution; no keeping data over 6 months (see rules above) | Not yet: docs read 2026-11-18, no live search without a key |
-| Book and manga covers | Downloaded by me, by hand | Manual | My call | n/a |
+| Book covers (manga included) | Downloaded by me, by hand | Manual | My call | n/a |
 
 **How fresh it needs to be:** my own records are frozen at the export date
 (2026-11-12), with new items added by hand until a recording tool exists. No re-export
@@ -51,17 +51,17 @@ planned. TMDB data is refreshed at least every 6 months.
 ## Scope
 
 - **In v1:**
-  - Library page with four categories: book, manga, film, TV.
+  - Library page with three categories: book, film, TV. Manga are shown under book
+    (decided 2026-11-19), so books need no type.
   - Every finished item (read/watched) listed under its category.
-  - Type for each item: an automatic first guess, then I fix mistakes by hand. For
-    films and TV, a TMDB match tells film from TV; otherwise "第X季" → TV. Every book
-    starts as "book"; I mark manga by hand.
+  - Film or TV for each film/TV item: an automatic first guess, then I fix mistakes by
+    hand. A TMDB match tells film from TV; otherwise "第X季" → TV.
   - Each TV season is its own item (Douban lists seasons separately), not grouped
     under one show.
-  - Output: one JSON file per category (book, manga, film, TV) with the most complete
+  - Output: one JSON file per category (book, film, TV) with the most complete
     data for each item. It doesn't need to match the current `data/library.ts` shape.
   - Film and TV covers from TMDB, shown from TMDB's image server, not stored.
-  - Book and manga covers added by hand over time, newest first.
+  - Book covers (manga included) added by hand over time, newest first.
   - A simple placeholder card for any item without a cover.
   - TMDB credit (logo + notice) on the site.
   - Ratings and comments: optional, may or may not show.
@@ -83,7 +83,7 @@ planned. TMDB data is refreshed at least every 6 months.
 - [ ] A category with ~1,500 films is a long page: fine for v1, or does it need paging
   or search?
 - [ ] The 2 films with no marked date: where do they go?
-- [ ] Where do my hand fixes (manga, film/TV corrections) live so that re-running the
+- [ ] Where do my hand fixes (film/TV corrections, missing titles) live so that re-running the
   script, e.g. for the 6-month TMDB refresh, doesn't overwrite them? Suggestion: a
   separate fixes file keyed by Douban id that the script applies last.
 - [ ] What is `library-app/` for?
