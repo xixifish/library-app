@@ -60,9 +60,50 @@ def search_tmdb(search):
     ]
 
 
-def get_tv_details(show_id, original_language):
-    """A show's details, in its original language (for the poster). Includes the
-    `seasons` list, with each season's `season_number`, `air_date` and `poster_path`."""
+def get_details(media_type, tmdb_id, original_language):
+    """A film's or show's full details (/movie/{id} or /tv/{id}), in its original
+    language, which picks the original-language poster. A show's details include
+    the `seasons` list, with each season's `season_number`, `air_date` and
+    `poster_path`."""
     params = {"language": original_language}
-    details = tmdb_get(f"/tv/{show_id}", params)
-    return details
+    return tmdb_get(f"/{media_type}/{tmdb_id}", params)
+
+
+def get_tv_details(show_id, original_language):
+    return get_details("tv", show_id, original_language)
+
+
+def find_season(details, season_number):
+    """The entry for one season in a show's `seasons` list, or None if TMDB
+    doesn't have that season."""
+    for season in details["seasons"]:
+        if season["season_number"] == season_number:
+            return season
+    return None
+
+
+def to_details(response, season_number):
+    """Keep only the chosen fields of a details response, under the same names for
+    films and TV (record format: docs/fetch-examples.json, `selected.details`).
+
+    - original_title: film `original_title`, TV `original_name`
+    - release_date: film `release_date`, TV `first_air_date` (the show's start)
+    - genre_ids: only the ids; the names come back in each item's own language
+    - imdb_id: films only; TV details don't include it, so None
+    - season: the matched season's own date and poster, None if not a season item
+    """
+    season = None
+    if season_number is not None:
+        found = find_season(response, season_number)
+        if found is not None:
+            season = {"air_date": found["air_date"], "poster_path": found["poster_path"]}
+    return {
+        "original_title": response.get("original_title") or response.get("original_name"),
+        "release_date": response.get("release_date")
+        or response.get("first_air_date")
+        or None,
+        "genre_ids": [genre["id"] for genre in response.get("genres", [])],
+        "poster_path": response.get("poster_path"),
+        "imdb_id": response.get("imdb_id") or None,
+        "season": season,
+    }

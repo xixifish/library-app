@@ -3,6 +3,7 @@
 Step 1: build each item's `search` part (query, year, season) from the raw export.
 Step 2: search TMDB and turn the results into `candidates`.
 Step 3: select the match by the year rule (seasons: the season's own air_date).
+Step 4: get the match's details and build the record's `selected` part.
 
 The parts live in douban.py (the raw data) and tmdb.py (the TMDB requests).
 Rules: docs/requirements.md, "TMDB matching". Record format: docs/fetch-examples.json.
@@ -15,7 +16,7 @@ import sys
 
 from dotenv import load_dotenv
 from douban import ROOT, build_fallback_query, build_search, load_finished_movies
-from tmdb import get_tv_details, search_tmdb
+from tmdb import find_season, get_details, get_tv_details, search_tmdb, to_details
 
 EXAMPLES = ROOT / "docs" / "fetch-examples.json"
 
@@ -38,15 +39,6 @@ def find_candidates(movie, search):
 def year_of(date):
     """'2026-09-16' → 2026; None (no date) → None."""
     return int(date[:4]) if date else None
-
-
-def find_season(details, season_number):
-    """The entry for one season in a show's `seasons` list, or None if TMDB
-    doesn't have that season."""
-    for season in details["seasons"]:
-        if season["season_number"] == season_number:
-            return season
-    return None
 
 
 def select_candidate(search, candidates):
@@ -84,6 +76,21 @@ def select_candidate(search, candidates):
     return None, None
 
 
+def build_selected(match, details, search):
+    """The record's `selected` part for a matched candidate. `details` is the full
+    response if select_candidate already fetched it (season items); otherwise it is
+    requested here (films and whole shows), one request."""
+    if details is None:
+        details = get_details(match["media_type"], match["id"], match["original_language"])
+    return {
+        "id": match["id"],
+        "media_type": match["media_type"],
+        "season": search["season"],
+        "original_language": match["original_language"],
+        "details": to_details(details, search["season"]),
+    }
+
+
 def main():
     load_dotenv(ROOT / ".env")
     if not os.environ.get("TMDB_TOKEN"):
@@ -112,7 +119,7 @@ def main():
         print(f"\n  {movie['title']}: search {built} {result}")
 
         candidates = find_candidates(movie, built)
-        selected, details = select_candidate(built, candidates)
+        match, details = select_candidate(built, candidates)
         for candidate in candidates:
             print(
                 f"    {candidate['media_type']:5} {candidate['id']:>8}  "
@@ -133,13 +140,11 @@ def main():
             expected_id = example["selected"]["id"]
         else:
             expected_id = None
-        selected_id = selected["id"] if selected else None
-        if selected is None:
+        match_id = match["id"] if match else None
+        if match is None:
             description = "none (manual)"
         else:
-            description = (
-                f"{selected['media_type']} {selected['id']} {selected['release_date']}"
-            )
+            description = f"{match['media_type']} {match['id']} {match['release_date']}"
             if details is not None:  # only season matches have details at this point
                 season = find_season(details, built["season"])
                 if season is not None:
@@ -147,9 +152,21 @@ def main():
                         f", season {built['season']} aired {season['air_date']}"
                     )
         selection_result = (
-            "ok" if selected_id == expected_id else f"DIFFERENT, expected {expected_id}"
+            "ok" if match_id == expected_id else f"DIFFERENT, expected {expected_id}"
         )
         print(f"  selected: {description} {selection_result}")
+
+        # Step 4: the whole `selected` part, compared with the example's.
+        if match is not None and example["status"] == "matched":
+            selected = build_selected(match, details, built)
+            if selected == example["selected"]:
+                print("  selected part: same as the example")
+            else:
+                print("  selected part: DIFFERENT from the example")
+                for key in selected:
+                    if selected[key] != example["selected"].get(key):
+                        print(f"    {key}: got {selected[key]}")
+                        print(f"    {key}: expected {example['selected'].get(key)}")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,8 @@ import sys
 from dotenv import load_dotenv
 
 from douban import ROOT, build_search, load_finished_movies
-from fetch_tmdb import find_candidates, find_season, select_candidate
+from tmdb import find_season
+from fetch_tmdb import find_candidates, select_candidate
 
 # subjectId → why this title is in the test
 TEST_TITLES = {
