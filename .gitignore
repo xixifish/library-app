@@ -10,3 +10,5 @@ __pycache__/
 
 # Private Douban exports (kept local, never committed)
 raw/
+# Fetched TMDB data: a regenerable cache, not published
+cache/

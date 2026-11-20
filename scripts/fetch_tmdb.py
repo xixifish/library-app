@@ -1,24 +1,40 @@
-"""Fetch TMDB data for finished Douban films and TV.
+"""Fetch TMDB data for finished Douban films and TV, one record per item.
 
 Step 1: build each item's `search` part (query, year, season) from the raw export.
 Step 2: search TMDB and turn the results into `candidates`.
 Step 3: select the match by the year rule (seasons: the season's own air_date).
 Step 4: get the match's details and build the record's `selected` part.
+Step 5: apply my fixes (data/fixes.json), write each record as soon as it's done,
+        and resume: items that already have a record are skipped.
 
+Records go to cache/tmdb-records.jsonl, one JSON record per line, appended. If an
+item is fetched again (e.g. after a fix), its newer line wins.
 The parts live in douban.py (the raw data) and tmdb.py (the TMDB requests).
 Rules: docs/requirements.md, "TMDB matching". Record format: docs/fetch-examples.json.
-Run from library-app/ with the virtual environment active: python scripts/fetch_tmdb.py
+
+Run from library-app/ with the virtual environment active:
+    python scripts/fetch_tmdb.py            # everything not fetched yet
+    python scripts/fetch_tmdb.py --limit 5  # only the next 5, for a test
 """
 
+import argparse
 import json
 import os
 import sys
+from collections import Counter
+from datetime import date
 
+import requests
 from dotenv import load_dotenv
-from douban import ROOT, build_fallback_query, build_search, load_finished_movies
-from tmdb import find_season, get_details, get_tv_details, search_tmdb, to_details
 
-EXAMPLES = ROOT / "docs" / "fetch-examples.json"
+from douban import ROOT, build_fallback_query, build_search, load_finished_movies
+from tmdb import get_details, get_tv_details, search_tmdb, to_details, find_season
+
+RECORDS = ROOT / "cache" / "tmdb-records.jsonl"
+FIXES = ROOT / "data" / "fixes.json"
+
+
+# --- Steps 1–4: search, select, details ---
 
 
 def find_candidates(movie, search):
@@ -36,9 +52,9 @@ def find_candidates(movie, search):
     return search_tmdb({**search, "query": fallback})
 
 
-def year_of(date):
+def year_of(date_text):
     """'2026-09-16' → 2026; None (no date) → None."""
-    return int(date[:4]) if date else None
+    return int(date_text[:4]) if date_text else None
 
 
 def select_candidate(search, candidates):
@@ -91,82 +107,179 @@ def build_selected(match, details, search):
     }
 
 
+# --- Step 5: fixes, whole records, saving, resuming ---
+
+
+def status_code(error):
+    """The HTTP status of a requests.HTTPError, or None. `error.response` is always
+    set by raise_for_status(), but its type allows None, so check it."""
+    return error.response.status_code if error.response is not None else None
+
+
+def selected_from_fix(fix, candidates):
+    """The `selected` part for a match I chose by hand. The fix gives only `id`,
+    `media_type` and `season`; the original language (for the poster) comes from the
+    candidates if the id is among them, else from one extra request."""
+    language = next(
+        (
+            c["original_language"]
+            for c in candidates
+            if c["id"] == fix["id"] and c["media_type"] == fix["media_type"]
+        ),
+        None,
+    )
+    if language is None:
+        language = get_details(fix["media_type"], fix["id"], None)["original_language"]
+    details = get_details(fix["media_type"], fix["id"], language)
+    season = fix.get("season")
+    return {
+        "id": fix["id"],
+        "media_type": fix["media_type"],
+        "season": season,  # TMDB's season number, which can differ from Douban's
+        "original_language": language,
+        "details": to_details(details, season),
+    }
+
+
+def fetch_record(movie, fix=None, previous=None):
+    """The whole record for one item (format: docs/fetch-examples.json).
+
+    - A fix with an id: no search; `fixed`, with details for my chosen id. The
+      search and candidates of an earlier record are kept: they show why the item
+      needed me.
+    - A fix with only `hidden`: checked by me and not on TMDB → `not_on_tmdb`.
+    - No fix: search, select and get details → `matched` or `manual`.
+    """
+    record = {
+        "fetch_date": date.today().isoformat(),
+        "status": None,
+        "douban": {
+            "subjectId": movie["subjectId"],
+            "title": movie["title"],
+            "originalTitle": movie["originalTitle"],
+            "info": movie["info"],
+        },
+        "search": build_search(movie),
+        "candidates": [],
+        "selected": None,
+    }
+
+    if fix is not None:
+        if previous is not None:
+            record["search"] = previous["search"]
+            record["candidates"] = previous["candidates"]
+        if "id" not in fix:
+            record["status"] = "not_on_tmdb"
+            return record
+        try:
+            record["selected"] = selected_from_fix(fix, record["candidates"])
+            record["status"] = "fixed"
+        except requests.HTTPError as error:
+            if status_code(error) != 404:
+                raise
+            print(f"    fix id {fix['id']} not found on TMDB: check data/fixes.json")
+            record["status"] = "manual"
+        return record
+
+    search = record["search"]
+    record["candidates"] = find_candidates(movie, search)
+    match, details = select_candidate(search, record["candidates"])
+    if match is None:
+        record["status"] = "manual"
+    else:
+        record["status"] = "matched"
+        record["selected"] = build_selected(match, details, search)
+    return record
+
+
+def needs_fetch(fix, previous):
+    """Fetch an item if it has no record yet, or if its fix isn't applied yet."""
+    if previous is None:
+        return True
+    if fix is None:
+        return False
+    if "id" not in fix:
+        return previous["status"] != "not_on_tmdb"
+    selected = previous["selected"]
+    return (
+        previous["status"] != "fixed"
+        or selected is None
+        or selected["id"] != fix["id"]
+        or selected["media_type"] != fix["media_type"]
+        or selected["season"] != fix.get("season")
+    )
+
+
+def load_fixes():
+    if not FIXES.exists():
+        return {}
+    with open(FIXES, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_records():
+    """All saved records by subjectId; a later line for the same item wins."""
+    records = {}
+    if RECORDS.exists():
+        with open(RECORDS, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    record = json.loads(line)
+                    records[record["douban"]["subjectId"]] = record
+    return records
+
+
+def append_record(record):
+    """Write one record right away, so a stop loses at most the current item."""
+    RECORDS.parent.mkdir(exist_ok=True)
+    with open(RECORDS, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Fetch TMDB data for Douban films and TV.")
+    parser.add_argument("--limit", type=int, help="fetch at most this many items")
+    args = parser.parse_args()
+
     load_dotenv(ROOT / ".env")
     if not os.environ.get("TMDB_TOKEN"):
         sys.exit("TMDB_TOKEN is missing: put it in library-app/.env")
 
     movies = load_finished_movies()
-    by_id = {
-        # { movie_douban_id: movie }
-        movie["subjectId"]: movie
+    fixes = load_fixes()
+    records = load_records()
+    todo = [
+        movie
         for movie in movies
-    }
+        if needs_fetch(fixes.get(movie["subjectId"]), records.get(movie["subjectId"]))
+    ]
+    print(f"{len(movies)} finished items, {len(records)} with a record, {len(todo)} to fetch.")
+    if args.limit is not None:
+        todo = todo[: args.limit]
 
-    # Check against the examples, which were written by hand:
-    # does the code build the same `search`, and does TMDB return the same candidates?
-    with open(EXAMPLES, encoding="utf-8") as f:
-        examples = json.load(f)
-    print("Examples:")
-    for example in examples:
-        movie = by_id[example["douban"]["subjectId"]]
-        built = build_search(movie)
-        result = (
-            "ok"
-            if built == example["search"]
-            else f"DIFFERENT, expected {example['search']}"
-        )
-        print(f"\n  {movie['title']}: search {built} {result}")
+    skipped = 0
+    try:
+        for number, movie in enumerate(todo, start=1):
+            subject_id = movie["subjectId"]
+            try:
+                record = fetch_record(movie, fixes.get(subject_id), records.get(subject_id))
+            except requests.HTTPError as error:
+                if status_code(error) == 401:
+                    sys.exit("TMDB says 401 Unauthorized: check TMDB_TOKEN in .env")
+                print(f"[{number}/{len(todo)}] skipped {movie['title']}: {error}")
+                skipped += 1
+                continue
+            except (requests.ConnectionError, requests.Timeout) as error:
+                print(f"[{number}/{len(todo)}] skipped {movie['title']}: {error}")
+                skipped += 1
+                continue
+            append_record(record)
+            print(f"[{number}/{len(todo)}] {record['status']:11} {movie['title']}")
+    except KeyboardInterrupt:
+        print("\nStopped. Run again to continue where it stopped.")
 
-        candidates = find_candidates(movie, built)
-        match, details = select_candidate(built, candidates)
-        for candidate in candidates:
-            print(
-                f"    {candidate['media_type']:5} {candidate['id']:>8}  "
-                f"{candidate['release_date']}  {candidate['title']}"
-            )
-        same = [c["id"] for c in candidates] == [c["id"] for c in example["candidates"]]
-        print(
-            f"  candidates: {len(candidates)}, "
-            + (
-                "same as the example"
-                if same
-                else f"DIFFERENT from the example ({len(example['candidates'])})"
-            )
-        )
-        # What the rule should pick: the example's match if it was `matched`.
-        # For `manual` and `fixed` the rule finds nothing (a `fixed` match is my own).
-        if example["status"] == "matched":
-            expected_id = example["selected"]["id"]
-        else:
-            expected_id = None
-        match_id = match["id"] if match else None
-        if match is None:
-            description = "none (manual)"
-        else:
-            description = f"{match['media_type']} {match['id']} {match['release_date']}"
-            if details is not None:  # only season matches have details at this point
-                season = find_season(details, built["season"])
-                if season is not None:
-                    description += (
-                        f", season {built['season']} aired {season['air_date']}"
-                    )
-        selection_result = (
-            "ok" if match_id == expected_id else f"DIFFERENT, expected {expected_id}"
-        )
-        print(f"  selected: {description} {selection_result}")
-
-        # Step 4: the whole `selected` part, compared with the example's.
-        if match is not None and example["status"] == "matched":
-            selected = build_selected(match, details, built)
-            if selected == example["selected"]:
-                print("  selected part: same as the example")
-            else:
-                print("  selected part: DIFFERENT from the example")
-                for key in selected:
-                    if selected[key] != example["selected"].get(key):
-                        print(f"    {key}: got {selected[key]}")
-                        print(f"    {key}: expected {example['selected'].get(key)}")
+    statuses = Counter(record["status"] for record in load_records().values())
+    print(f"\nRecords: {dict(statuses)}. Skipped this run (tried again next run): {skipped}.")
 
 
 if __name__ == "__main__":
