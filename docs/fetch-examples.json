@@ -1,0 +1,427 @@
+[
+  {
+    "fetch_date": "2026-11-20",
+    "status": "matched",
+    "douban": {
+      "subjectId": "1434269",
+      "title": "黑炮事件",
+      "originalTitle": "",
+      "info": "1986(中国大陆) / 刘子枫 / 盖尔哈德·奥尔谢夫斯基 / 高明 / 杨亚洲 / 汪漪 / 杨凤良 / 王北龙 / 赵秀玲 / 戈辉 / 谢炜 / 中国大陆 / 黄建新 / 99分钟 / 剧情 / 喜剧 / 李唯 Wei Li / 张贤亮 Xianliang Zhang / 汉语普通话 / 德语 / 英语"
+    },
+    "search": {
+      "query": "黑炮事件",
+      "year": 1986,
+      "season": null
+    },
+    "candidates": [
+      {
+        "id": 176643,
+        "media_type": "movie",
+        "title": "黑炮事件",
+        "release_date": "1985-01-02",
+        "original_language": "zh"
+      },
+      {
+        "id": 1256440,
+        "media_type": "movie",
+        "title": "创新立异的长片处女作：汤尼·雷恩谈《黑炮事件》",
+        "release_date": "2019-05-05",
+        "original_language": "zh"
+      }
+    ],
+    "selected": {
+      "id": 176643,
+      "media_type": "movie",
+      "season": null,
+      "original_language": "zh",
+      "details": {
+        "original_title": "黑炮事件",
+        "release_date": "1985-01-02",
+        "genre_ids": [
+          18,
+          35
+        ],
+        "poster_path": "/8ojeygi8QoAoy5Yz2TVFI98Ine8.jpg",
+        "imdb_id": "tt0091190",
+        "season": null
+      }
+    }
+  },
+  {
+    "fetch_date": "2026-11-20",
+    "status": "matched",
+    "douban": {
+      "subjectId": "36689816",
+      "title": "流人 第六季",
+      "originalTitle": "Slow Horses Season 6",
+      "info": "2026-09-16(英国) / 加里·奥德曼 / 克里斯汀·斯科特·托马斯 / 杰克·劳登 / 萨斯基亚·里维斯 / 克里斯托弗·钟 / 艾米-费欧‧爱德华兹 / 罗莎琳德·以利亚撒 / 乔安娜·斯坎伦 / 卢西安·姆瑟马蒂 / 汤姆·布鲁克 / 英国 / 美国 / 亚当·兰道 / 流人 / 50分钟 / 流人 / 剧情 / 惊悚 / 盖比·奇亚普 Gaby Chiappe / Maisie Parker / 英语"
+    },
+    "search": {
+      "query": "Slow Horses",
+      "year": 2026,
+      "season": 6
+    },
+    "candidates": [
+      {
+        "id": 95480,
+        "media_type": "tv",
+        "title": "Slow Horses",
+        "release_date": "2022-04-01",
+        "original_language": "en"
+      }
+    ],
+    "selected": {
+      "id": 95480,
+      "media_type": "tv",
+      "season": 6,
+      "original_language": "en",
+      "details": {
+        "original_title": "Slow Horses",
+        "release_date": "2022-04-01",
+        "genre_ids": [
+          80,
+          18,
+          9648
+        ],
+        "poster_path": "/AdYr4DjOgXvDUMwu6vEhZy1Rnxk.jpg",
+        "imdb_id": null,
+        "season": {
+          "air_date": "2026-09-16",
+          "poster_path": "/w2jauz2PeSjFQifDObI3qDen4f7.jpg"
+        }
+      }
+    }
+  },
+  {
+    "fetch_date": "2026-11-20",
+    "status": "manual",
+    "douban": {
+      "subjectId": "3010220",
+      "title": "杨门女将",
+      "originalTitle": "",
+      "info": "李若彤 / 李绮虹 / 郑佩佩 / 张智尧 / 连凯 / 宁静 / 陈国邦 / 蔡晶 / 王新芬 / 金晶 / 中国大陆 / 卫翰韬 / 黄伟明 / 袁英明 / 45分钟 / 历史 / 爱情 / 战争 / 古装 / 郑怀兴 Huaixing Zheng / 郑宜庸 Yiyong Zheng / 王莉芝 Lizhi Wang / 汉语普通话"
+    },
+    "search": {
+      "query": "杨门女将",
+      "year": null,
+      "season": null
+    },
+    "candidates": [
+      {
+        "id": 80174,
+        "media_type": "tv",
+        "title": "杨门女将",
+        "release_date": "2001-05-05",
+        "original_language": "zh"
+      },
+      {
+        "id": 259867,
+        "media_type": "tv",
+        "title": "杨门女将系列电影",
+        "release_date": "2001-05-05",
+        "original_language": "zh"
+      },
+      {
+        "id": 109726,
+        "media_type": "tv",
+        "title": "杨门女将",
+        "release_date": "1981-07-27",
+        "original_language": "cn"
+      },
+      {
+        "id": 1007174,
+        "media_type": "movie",
+        "title": "杨门女将",
+        "release_date": "1960-01-01",
+        "original_language": "zh"
+      },
+      {
+        "id": 1200696,
+        "media_type": "movie",
+        "title": "杨门女将(京剧)",
+        "release_date": "2012-01-01",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553577,
+        "media_type": "movie",
+        "title": "杨门女将之辕门斩子",
+        "release_date": "2001-12-24",
+        "original_language": "zh"
+      },
+      {
+        "id": 82190,
+        "media_type": "movie",
+        "title": "杨门女将之军令如山",
+        "release_date": "2011-11-17",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553552,
+        "media_type": "movie",
+        "title": "杨门女将之女儿当自强",
+        "release_date": "2001-10-01",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553573,
+        "media_type": "movie",
+        "title": "杨门女将之巧夺凤发",
+        "release_date": "2001-12-03",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553562,
+        "media_type": "movie",
+        "title": "杨门女将之女将初征",
+        "release_date": "2001-10-15",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553579,
+        "media_type": "movie",
+        "title": "杨门女将之穆桂英挂帅",
+        "release_date": "2001-12-30",
+        "original_language": "zh"
+      },
+      {
+        "id": 119801,
+        "media_type": "tv",
+        "title": "天真派：杨门女将",
+        "release_date": "2021-02-15",
+        "original_language": "zh"
+      },
+      {
+        "id": 1088882,
+        "media_type": "movie",
+        "title": "杨门女将之情定穆柯寨",
+        "release_date": "2001-12-10",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553566,
+        "media_type": "movie",
+        "title": "杨门女将之八妹游春",
+        "release_date": "2001-11-12",
+        "original_language": "zh"
+      },
+      {
+        "id": 1358740,
+        "media_type": "movie",
+        "title": "杨门女将之天波府风波",
+        "release_date": "2001-10-08",
+        "original_language": "zh"
+      },
+      {
+        "id": 576387,
+        "media_type": "movie",
+        "title": "杨门女将之女将初征",
+        "release_date": "2019-01-25",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553565,
+        "media_type": "movie",
+        "title": "杨门女将之昊天塔",
+        "release_date": "2001-11-05",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553568,
+        "media_type": "movie",
+        "title": "杨门女将之白马贺寿",
+        "release_date": "2001-11-19",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553564,
+        "media_type": "movie",
+        "title": "杨门女将之四郎探母",
+        "release_date": "2001-10-29",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553576,
+        "media_type": "movie",
+        "title": "杨门女将之战地情缘",
+        "release_date": "2001-12-17",
+        "original_language": "zh"
+      }
+    ],
+    "selected": null
+  },
+  {
+    "fetch_date": "2026-11-20",
+    "status": "fixed",
+    "douban": {
+      "subjectId": "3010220",
+      "title": "杨门女将",
+      "originalTitle": "",
+      "info": "李若彤 / 李绮虹 / 郑佩佩 / 张智尧 / 连凯 / 宁静 / 陈国邦 / 蔡晶 / 王新芬 / 金晶 / 中国大陆 / 卫翰韬 / 黄伟明 / 袁英明 / 45分钟 / 历史 / 爱情 / 战争 / 古装 / 郑怀兴 Huaixing Zheng / 郑宜庸 Yiyong Zheng / 王莉芝 Lizhi Wang / 汉语普通话"
+    },
+    "search": {
+      "query": "杨门女将",
+      "year": null,
+      "season": null
+    },
+    "candidates": [
+      {
+        "id": 80174,
+        "media_type": "tv",
+        "title": "杨门女将",
+        "release_date": "2001-05-05",
+        "original_language": "zh"
+      },
+      {
+        "id": 259867,
+        "media_type": "tv",
+        "title": "杨门女将系列电影",
+        "release_date": "2001-05-05",
+        "original_language": "zh"
+      },
+      {
+        "id": 109726,
+        "media_type": "tv",
+        "title": "杨门女将",
+        "release_date": "1981-07-27",
+        "original_language": "cn"
+      },
+      {
+        "id": 1007174,
+        "media_type": "movie",
+        "title": "杨门女将",
+        "release_date": "1960-01-01",
+        "original_language": "zh"
+      },
+      {
+        "id": 1200696,
+        "media_type": "movie",
+        "title": "杨门女将(京剧)",
+        "release_date": "2012-01-01",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553577,
+        "media_type": "movie",
+        "title": "杨门女将之辕门斩子",
+        "release_date": "2001-12-24",
+        "original_language": "zh"
+      },
+      {
+        "id": 82190,
+        "media_type": "movie",
+        "title": "杨门女将之军令如山",
+        "release_date": "2011-11-17",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553552,
+        "media_type": "movie",
+        "title": "杨门女将之女儿当自强",
+        "release_date": "2001-10-01",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553573,
+        "media_type": "movie",
+        "title": "杨门女将之巧夺凤发",
+        "release_date": "2001-12-03",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553562,
+        "media_type": "movie",
+        "title": "杨门女将之女将初征",
+        "release_date": "2001-10-15",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553579,
+        "media_type": "movie",
+        "title": "杨门女将之穆桂英挂帅",
+        "release_date": "2001-12-30",
+        "original_language": "zh"
+      },
+      {
+        "id": 119801,
+        "media_type": "tv",
+        "title": "天真派：杨门女将",
+        "release_date": "2021-02-15",
+        "original_language": "zh"
+      },
+      {
+        "id": 1088882,
+        "media_type": "movie",
+        "title": "杨门女将之情定穆柯寨",
+        "release_date": "2001-12-10",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553566,
+        "media_type": "movie",
+        "title": "杨门女将之八妹游春",
+        "release_date": "2001-11-12",
+        "original_language": "zh"
+      },
+      {
+        "id": 1358740,
+        "media_type": "movie",
+        "title": "杨门女将之天波府风波",
+        "release_date": "2001-10-08",
+        "original_language": "zh"
+      },
+      {
+        "id": 576387,
+        "media_type": "movie",
+        "title": "杨门女将之女将初征",
+        "release_date": "2019-01-25",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553565,
+        "media_type": "movie",
+        "title": "杨门女将之昊天塔",
+        "release_date": "2001-11-05",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553568,
+        "media_type": "movie",
+        "title": "杨门女将之白马贺寿",
+        "release_date": "2001-11-19",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553564,
+        "media_type": "movie",
+        "title": "杨门女将之四郎探母",
+        "release_date": "2001-10-29",
+        "original_language": "zh"
+      },
+      {
+        "id": 1553576,
+        "media_type": "movie",
+        "title": "杨门女将之战地情缘",
+        "release_date": "2001-12-17",
+        "original_language": "zh"
+      }
+    ],
+    "selected": {
+      "id": 80174,
+      "media_type": "tv",
+      "season": null,
+      "original_language": "zh",
+      "details": {
+        "original_title": "杨门女将",
+        "release_date": "2001-05-05",
+        "genre_ids": [
+          18,
+          10759
+        ],
+        "poster_path": "/8jrB0bg2SS5XXUfWiuJPISCXcQy.jpg",
+        "imdb_id": null,
+        "season": null
+      }
+    }
+  }
+]

@@ -50,25 +50,38 @@ Decided 2026-11-20, after testing 7 titles by hand with curl.
 
 - **Query:** `originalTitle` if present, else `title`. For a TV season, remove
   "Season X" / "第X季" from the query and keep the season number.
-- **Endpoint:** `/search/multi` with `language=zh-CN`. It returns films and TV
-  together, each with a `media_type`, so the match decides film or TV. Skip
-  `person` results. Films use `title` / `release_date`, TV uses `name` /
-  `first_air_date`.
+- **Endpoint:** with `language=zh-CN` (it only sets the language of the results,
+  not what is matched). Only the first page of results (20) is read.
+  - Items with a season in the title: `/search/tv`, since they must be TV.
+    Searching films too would let them push the right show off the first page.
+    `/search/tv` results have no `media_type`; the script sets it to `tv`.
+    (Decided 2026-11-20.)
+  - All other items: `/search/multi`. It returns films and TV together, each with a
+    `media_type`, so the match decides film or TV. Skip `person` results.
+  - Films use `title` / `release_date`, TV uses `name` / `first_air_date`.
 - **Accept:** the first result whose year is within 1 of the year in Douban's `info`.
   A 1-year gap is normal: 黑炮事件 is 1986 on Douban and 1985 on TMDB.
 - **TV seasons:** after finding the show, get `/tv/{id}` and check the season's own
   `air_date` against Douban's date, not the show's `first_air_date`. Seasons have
-  their own `poster_path`.
+  their own `poster_path`. The `seasons` list in `/tv/{id}` has each season's
+  `season_number`, `air_date` and `poster_path`, so this one request serves both the
+  check and the details; `/tv/{id}/season/{n}` isn't needed. With several TV
+  candidates, check them in order until one passes.
 - **Manual list** (a person picks the match, nothing is guessed):
   - no result from TMDB;
   - no result within 1 year of Douban's year;
-  - no date in Douban's `info` (15 finished items), so no year to check.
+  - no date in Douban's `info` (15 finished items), so no year to check;
+  - a TV season whose season number isn't in the show's `seasons` list on TMDB.
 
   A missing `originalTitle` alone is not a reason: ~243 of the 253 finished items
   without one are Chinese-language, and their `title` is the original title.
 - **Shown in the original language** (decided 2026-11-20):
-  - Title: Douban's `originalTitle`, else `title` (then the Chinese title is the
-    original). It's my own data, so the 6-month TMDB rule doesn't apply to it.
+  - Title: TMDB's `original_title` (film) or `original_name` (TV) for matched items.
+    Changed 2026-11-20 from Douban's titles: TMDB's are cleaner, and the future
+    marking tool will use TMDB, not Douban. Items without a TMDB match fall back to
+    Douban's `originalTitle`, else `title`. For a TV season the title is built from the
+    show's name and the season number (format still open). TMDB titles count as
+    stored TMDB data, so the 6-month rule applies to them.
   - Poster: after matching, request the details (`/movie/{id}` or `/tv/{id}`) with
     `language=<original_language>` from the match, and use that `poster_path`.
     Checked on 直到T恤干透 (322570): `ja` and `zh-CN` give different posters.
@@ -105,8 +118,16 @@ planned. TMDB data is refreshed at least every 6 months.
     data for each item. It doesn't need to match the current `data/library.ts` shape.
   - Film and TV covers from TMDB, shown from TMDB's image server, not stored.
   - Book covers (manga included) added by hand over time, newest first.
-  - A simple placeholder card for any item without a cover.
+  - A simple placeholder card for any item without a cover. Unmatched film/TV
+    items are shown this way, with their Douban title, until I fix or hide them.
+  - My own decisions go in `data/fixes.json`, keyed by Douban `subjectId`: a TMDB
+    match (`id`, `media_type`, `season`), and/or `"hidden": true` to leave an item
+    off the site. An entry with only `hidden` means checked and not on TMDB. No
+    `hidden` field means shown. (Decided 2026-11-20.)
   - TMDB credit (logo + notice) on the site.
+  - Each matched film/TV card links to its TMDB page, built from the saved
+    `media_type`, `id` and season (e.g. `themoviedb.org/movie/176643`,
+    `themoviedb.org/tv/95480/season/6`); no URL is stored (decided 2026-11-20).
   - Ratings and comments: optional, may or may not show.
 - **Out:** want-to-read/watch items, in-progress items, tags (only on 471 of 1,762
   watched films/TV and 147 of 472 read books; not useful for the site, left out of the output but
@@ -125,6 +146,8 @@ planned. TMDB data is refreshed at least every 6 months.
 - [x] Show Douban's Chinese title as a smaller second line under the original title?
   No: only the original title is shown (decided 2026-11-20).
 - [ ] For a TV season: show the season's poster or the show's poster?
+- [ ] Title format for a TV season: "Slow Horses Season 6", "Slow Horses · S6", or
+  something else?
 - [ ] Confirm in TMDB's image docs that linking to their image server is the intended use.
 - [ ] Does saving TMDB ids or poster addresses count as keeping data? If yes, how and
   how often to refresh (at least every 6 months).
@@ -133,6 +156,8 @@ planned. TMDB data is refreshed at least every 6 months.
 - [ ] A category with ~1,500 films is a long page: fine for v1, or does it need paging
   or search?
 - [ ] The 2 films with no marked date: where do they go?
+- [ ] Items without a TMDB match: link to their Douban page (`url` in the raw data),
+  or no link?
 - [ ] Where do my hand fixes (film/TV corrections, missing titles) live so that re-running the
   script, e.g. for the 6-month TMDB refresh, doesn't overwrite them? Suggestion: a
   separate fixes file keyed by Douban id that the script applies last.
