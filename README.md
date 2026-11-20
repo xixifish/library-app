@@ -19,7 +19,7 @@ Book covers are added by hand over time. Items without a cover get a placeholder
 
 - [x] Requirements: [`docs/requirements.md`](docs/requirements.md)
 - [x] Step 1: explore the data (`scripts/explore.py`)
-- [ ] Step 2: test TMDB matching on about 20 titles
+- [x] Step 2: test TMDB matching on about 20 titles (`scripts/test_matching.py`)
 - [ ] Build the JSON files
 - [ ] Show them on the website
 

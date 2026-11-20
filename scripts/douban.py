@@ -71,6 +71,10 @@ def parse_season(title):
 def build_query(movie, season):
     """`originalTitle` if present, else `title`; season text removed for a season item."""
     original = movie["originalTitle"].strip()
+    # The export cut some long original titles short: "Doctor Strange in the
+    # Multiverse of ...". Search with the part that's there.
+    if original.endswith("..."):
+        original = original.removesuffix("...").strip()
     query = original or movie["title"]
     if season is not None:
         if original:
@@ -81,10 +85,18 @@ def build_query(movie, season):
     return query.strip()
 
 
+def build_fallback_query(movie):
+    """Douban's Chinese title without the season part: the second search when the
+    first finds nothing (e.g. '黑暗荣耀 第二季' → '黑暗荣耀')."""
+    return SEASON_IN_TITLE.sub("", movie["title"]).strip()
+
+
 def build_search(movie):
+    """`fallback_query` stays None unless the fallback search is used."""
     season = parse_season(movie["title"])
     return {
         "query": build_query(movie, season),
         "year": parse_year(movie["info"]),
         "season": season,
+        "fallback_query": None,
     }

@@ -46,10 +46,19 @@ Read on 2026-11-18. My reading, not legal advice.
 
 ## TMDB matching
 
-Decided 2026-11-20, after testing 7 titles by hand with curl.
+Decided 2026-11-20, after testing 7 titles by hand with curl, then 21 titles with
+`scripts/test_matching.py` (results below).
 
-- **Query:** `originalTitle` if present, else `title`. For a TV season, remove
-  "Season X" / "第X季" from the query and keep the season number.
+- **Query:** `originalTitle` if present, else `title`.
+  - A trailing `...` is removed: the export cut 48 finished items' `originalTitle`
+    short (e.g. `Doctor Strange in the Multiverse of ...`).
+  - TV season: the season number comes from "第X季" in Douban's `title` (all 321
+    season items have it, Chinese numerals). Its text is removed from the query:
+    "第X季" from `title`; "Season 6", "2nd Season", "シーズン1", "시즌 3" from
+    `originalTitle`. Other forms (`더 글로리2`, `第2期`, `肆`) are searched as they are.
+  - **Fallback** (decided 2026-11-20): if the search returns no results, search again
+    with Douban's Chinese `title` (season part removed). The year and season checks
+    still apply. The record notes that the fallback query was used.
 - **Endpoint:** with `language=zh-CN` (it only sets the language of the results,
   not what is matched). Only the first page of results (20) is read.
   - Items with a season in the title: `/search/tv`, since they must be TV.
@@ -68,10 +77,11 @@ Decided 2026-11-20, after testing 7 titles by hand with curl.
   check and the details; `/tv/{id}/season/{n}` isn't needed. With several TV
   candidates, check them in order until one passes.
 - **Manual list** (a person picks the match, nothing is guessed):
-  - no result from TMDB;
+  - no result from TMDB, with the fallback search too;
   - no result within 1 year of Douban's year;
   - no date in Douban's `info` (15 finished items), so no year to check;
-  - a TV season whose season number isn't in the show's `seasons` list on TMDB.
+  - a TV season whose season number isn't in the show's `seasons` list on TMDB
+    (e.g. TMDB counts 物理魔法使马修 第二季 as part of season 1).
 
   A missing `originalTitle` alone is not a reason: ~243 of the 253 finished items
   without one are Chinese-language, and their `title` is the original title.
@@ -95,8 +105,33 @@ Decided 2026-11-20, after testing 7 titles by hand with curl.
 | 铁拳教育 | 참교육 / 铁拳教育 | ✓ tv (276161) with both; 3 films in results fail the year check |
 | 直到T恤干透 | Ｔシャツが乾くまで | ✓ tv (322570), full-width and normal `T` same result |
 | 黑炮事件 | 黑炮事件 (no original title) | ✓ film (176643), 1985 vs 1986; a 2019 video essay ruled out by year |
-| 哀乐中年 | 哀乐中年 (no original title) | ✓ film (176628), 1949 |
+| 哀乐中年 | 哀樂中年 (original title, traditional characters) | ✓ film (176628), 1949 |
 | 杨门女将 | 杨门女将 (no date) | ? three exact-name results (2001 tv, 1981 tv, 1960 film); needs a person |
+
+**Script test, 2026-11-20** (`scripts/test_matching.py`, steps 1–3 of the fetch script,
+before the `...` and fallback rules). The 7 titles above gave the same results. Of all
+21: 13 matched, all correct by eye (no wrong match); 8 manual.
+
+| Douban title | Case | Result |
+|---|---|---|
+| 奇异博士2：疯狂多元宇宙 | cut-off English title | ✓ film (453395), found despite the `...` |
+| 现在不是出轨的问题 | cut-off Korean title | ✗ no results → ✓ tv (301418) once the `...` is removed |
+| 美国恐怖故事 第一季 | cut-off title + season | ✗ no results → ✓ tv (1413), season 1, via the fallback `美国恐怖故事` |
+| 黑暗荣耀 第二季 | `더 글로리2` | ✗ no results → fallback finds the show (136283), but TMDB has one 16-episode season for both parts: manual |
+| 一拳超人 第二季 | `ワンパンマン 第2期` | ✗ no results → ✓ tv (63926), season 2 aired 2019-04-10, via the fallback `一拳超人` |
+| 夏目友人帐 第四季 | `夏目友人帳 肆` | ✓ tv (69500), season 4 aired 2012-01-03 (Douban 01-02) |
+| 物理魔法使马修 第二季 | season subtitle in the title | manual: show found (204832), but TMDB has only season 1 |
+| 动物狂想曲 第一季 | `BEASTARS`, no season marker | ✓ tv (90937), season 1 |
+| 鱿鱼游戏 第一季 | `오징어 게임`, no season marker | ✓ tv (93405), season 1 |
+| 吐槽大会 第五季 | season, no original title | ✓ tv (84698), season 5 aired on Douban's date |
+| 西游记 | no date (`Journey to the West`) | manual, as expected (20 results) |
+| 西游记 | common title, 1986 | ✓ tv (13923); the year picks it from 20 versions |
+| 杨门女将之女将初征 | no date, two same-name results | manual, as expected |
+| 杨门女将之情定穆柯寨 | year only (2001) | ✓ film (1088882) |
+
+The 4 "no results" items led to the `...` and fallback rules. Rerun with both rules
+(same day): 16 matched, all correct; 5 manual (3 without a date, 2 where TMDB numbers
+the seasons differently: 物理魔法使马修, 黑暗荣耀).
 
 **How fresh it needs to be:** my own records are frozen at the export date
 (2026-11-12), with new items added by hand until a recording tool exists. No re-export
@@ -138,9 +173,9 @@ planned. TMDB data is refreshed at least every 6 months.
 ## Open questions
 
 - [x] How well does TMDB match my titles, especially Chinese ones? Answered
-  2026-11-20 by 7 hand searches; the rule is in TMDB matching. Still to watch when the
-  script runs on everything: how long the manual list gets, and whether a wrong match
-  slips through with the right year.
+  2026-11-20 by 7 hand searches and a 21-title script test (no wrong match); the rule
+  is in TMDB matching. Still to watch when the script runs on everything: how long
+  the manual list gets, and whether a wrong match slips through with the right year.
 - [x] Posters in Chinese or in the original language? Original language, titles too
   (see TMDB matching).
 - [x] Show Douban's Chinese title as a smaller second line under the original title?

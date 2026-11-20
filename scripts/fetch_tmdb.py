@@ -14,10 +14,25 @@ import os
 import sys
 
 from dotenv import load_dotenv
-from douban import ROOT, build_search, load_finished_movies
+from douban import ROOT, build_fallback_query, build_search, load_finished_movies
 from tmdb import get_tv_details, search_tmdb
 
 EXAMPLES = ROOT / "docs" / "fetch-examples.json"
+
+
+def find_candidates(movie, search):
+    """Search TMDB with search["query"]. If that finds nothing, search again with
+    Douban's Chinese title (season part removed) and note it in
+    search["fallback_query"], so the record shows which query found the candidates.
+    The year and season checks in select_candidate apply either way."""
+    candidates = search_tmdb(search)
+    if candidates:
+        return candidates
+    fallback = build_fallback_query(movie)
+    if fallback == search["query"]:
+        return candidates  # the same search again would find nothing new
+    search["fallback_query"] = fallback
+    return search_tmdb({**search, "query": fallback})
 
 
 def year_of(date):
@@ -96,7 +111,7 @@ def main():
         )
         print(f"\n  {movie['title']}: search {built} {result}")
 
-        candidates = search_tmdb(built)
+        candidates = find_candidates(movie, built)
         selected, details = select_candidate(built, candidates)
         for candidate in candidates:
             print(

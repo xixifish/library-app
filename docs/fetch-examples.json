@@ -11,7 +11,8 @@
     "search": {
       "query": "黑炮事件",
       "year": 1986,
-      "season": null
+      "season": null,
+      "fallback_query": null
     },
     "candidates": [
       {
@@ -59,7 +60,8 @@
     "search": {
       "query": "Slow Horses",
       "year": 2026,
-      "season": 6
+      "season": 6,
+      "fallback_query": null
     },
     "candidates": [
       {
@@ -104,7 +106,8 @@
     "search": {
       "query": "杨门女将",
       "year": null,
-      "season": null
+      "season": null,
+      "fallback_query": null
     },
     "candidates": [
       {
@@ -262,7 +265,8 @@
     "search": {
       "query": "杨门女将",
       "year": null,
-      "season": null
+      "season": null,
+      "fallback_query": null
     },
     "candidates": [
       {
