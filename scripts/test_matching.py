@@ -65,7 +65,7 @@ def main():
         movie = by_id[subject_id]
         search = build_search(movie)
         candidates = find_candidates(movie, search)
-        selected, details = select_candidate(search, candidates)
+        selected, details = select_candidate(search, candidates, movie["title"])
 
         print(f"\n{why}")
         print(f"  douban: {movie['title']} | {movie['originalTitle']!r} | {movie['info'][:20]!r}")

@@ -68,8 +68,21 @@ Decided 2026-11-20, after testing 7 titles by hand with curl, then 21 titles wit
   - All other items: `/search/multi`. It returns films and TV together, each with a
     `media_type`, so the match decides film or TV. Skip `person` results.
   - Films use `title` / `release_date`, TV uses `name` / `first_air_date`.
-- **Accept:** the first result whose year is within 1 of the year in Douban's `info`.
-  A 1-year gap is normal: 黑炮事件 is 1986 on Douban and 1985 on TMDB.
+- **Accept:** among the results whose year is within 1 of the year in Douban's `info`,
+  the best one, in this order: (1) its (`zh-CN`) title is exactly Douban's Chinese
+  `title`; (2) the smaller year difference; (3) TMDB's order. A 1-year gap is normal:
+  黑炮事件 is 1986 on Douban and 1985 on TMDB. The year tiebreak (2026-11-21) fixed 6
+  matches where a same-year film lost to a TV version or sequel a year off
+  (当男人恋爱时, 隧道, 画皮2, 勇敢者的游戏, 海贼王剧场版9, 反叛的童谣).
+  The title preference was added 2026-11-21 after the full run: ~170 matches weren't
+  TMDB's first result, and ~12 of them were wrong, usually a TV show that only
+  contains the title (变形金刚 → *Transformers: Animated*, 布鲁克林 → *Taxi Brooklyn*)
+  or a film whose Chinese title differs (暖 → *Eternal Sunshine*, 暖暖内含光). Tested
+  offline on the saved candidates: 23 matches change, ~18 clearly for the better.
+  Titles are compared after Unicode NFKC normalization and without spaces, since
+  Douban writes `哈利·波特与死亡圣器(上)` and TMDB `（上）` (found in the spot check;
+  changes only that one match, to Part 1). Not used for TV seasons, which already
+  have the season check.
 - **TV seasons:** after finding the show, get `/tv/{id}` and check the season's own
   `air_date` against Douban's date, not the show's `first_air_date`. Seasons have
   their own `poster_path`. The `seasons` list in `/tv/{id}` has each season's
@@ -95,6 +108,12 @@ Decided 2026-11-20, after testing 7 titles by hand with curl, then 21 titles wit
   - Poster: after matching, request the details (`/movie/{id}` or `/tv/{id}`) with
     `language=<original_language>` from the match, and use that `poster_path`.
     Checked on 直到T恤干透 (322570): `ja` and `zh-CN` give different posters.
+- **Titles in other languages** (decided 2026-11-21): the records also keep TMDB's
+  English (`title_en`, en-US) and Simplified Chinese (`title_zh`, zh-CN) titles, from
+  `append_to_response=translations` on the details request (no extra request). Not
+  shown in v1; kept for a possible language switch on the site later. TMDB often has
+  no zh-CN title for foreign items (*Slow Horses* has only zh-TW / zh-HK), so for
+  items from Douban the Chinese title can come from Douban's `title` instead.
 - **Not needed:** full-width characters (`Ｔ`) match the same as normal ones; running
   time from `info` isn't used unless ties between a film and a show turn up.
 

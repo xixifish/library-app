@@ -15,12 +15,15 @@ Rules: docs/requirements.md, "TMDB matching". Record format: docs/fetch-examples
 Run from library-app/ with the virtual environment active:
     python scripts/fetch_tmdb.py            # everything not fetched yet
     python scripts/fetch_tmdb.py --limit 5  # only the next 5, for a test
+    python scripts/fetch_tmdb.py --refetch 1301578 1434269  # these items again
+    python scripts/fetch_tmdb.py --all      # every item again (after a format change)
 """
 
 import argparse
 import json
 import os
 import sys
+import unicodedata
 from collections import Counter
 from datetime import date
 
@@ -52,17 +55,31 @@ def find_candidates(movie, search):
     return search_tmdb({**search, "query": fallback})
 
 
+def same_title(a, b):
+    """Titles equal after normalizing: full-width characters become normal ones
+    (Douban '(上)' vs TMDB '（上）', '：' vs ':') and spaces are ignored."""
+
+    def normalize(text):
+        return unicodedata.normalize("NFKC", text or "").replace(" ", "")
+
+    return normalize(a) == normalize(b)
+
+
 def year_of(date_text):
     """'2026-09-16' → 2026; None (no date) → None."""
     return int(date_text[:4]) if date_text else None
 
 
-def select_candidate(search, candidates):
+def select_candidate(search, candidates, douban_title):
     """Pick the match by the year rule. Always returns two values:
     (candidate, details) for a season item, (candidate, None) for a film or a
     whole show (details come later), (None, None) if nothing passes (-> manual).
 
-    - Film or whole show: the first candidate whose year is within 1 of Douban's.
+    - Film or whole show: among the candidates whose year is within 1 of Douban's,
+      preferred in this order: the exact Douban Chinese title, then the smaller
+      year difference, then TMDB's order.
+      (Without the title preference, a TV show that only contains the title, e.g.
+      Transformers: Animated for 变形金刚, could come first and win.)
     - TV season: the first show whose season `search["season"]` aired within 1 year
       of Douban's year. That needs /tv/{id}, one request per show checked.
     """
@@ -85,11 +102,23 @@ def select_candidate(search, candidates):
                 return candidate, details
         return None, None
 
+    passing = []
     for candidate in candidates:
         year = year_of(candidate["release_date"])
         if year is not None and abs(year - search["year"]) <= 1:
-            return candidate, None
-    return None, None
+            passing.append(candidate)
+    if not passing:
+        return None, None
+    # Best first: the exact Chinese title, then the smaller year difference, then
+    # TMDB's order (min() keeps the earliest of equal candidates).
+    best = min(
+        passing,
+        key=lambda candidate: (
+            not same_title(candidate["title"], douban_title),
+            abs(year_of(candidate["release_date"]) - search["year"]),
+        ),
+    )
+    return best, None
 
 
 def build_selected(match, details, search):
@@ -183,7 +212,7 @@ def fetch_record(movie, fix=None, previous=None):
 
     search = record["search"]
     record["candidates"] = find_candidates(movie, search)
-    match, details = select_candidate(search, record["candidates"])
+    match, details = select_candidate(search, record["candidates"], movie["title"])
     if match is None:
         record["status"] = "manual"
     else:
@@ -239,6 +268,19 @@ def append_record(record):
 def main():
     parser = argparse.ArgumentParser(description="Fetch TMDB data for Douban films and TV.")
     parser.add_argument("--limit", type=int, help="fetch at most this many items")
+    parser.add_argument(
+        "--refetch",
+        nargs="+",
+        metavar="SUBJECT_ID",
+        help="fetch only these items, even if they already have a record "
+        "(e.g. after a rule change)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="fetch every item again, e.g. after the record format changed; "
+        "fixes still apply",
+    )
     args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
@@ -248,11 +290,20 @@ def main():
     movies = load_finished_movies()
     fixes = load_fixes()
     records = load_records()
-    todo = [
-        movie
-        for movie in movies
-        if needs_fetch(fixes.get(movie["subjectId"]), records.get(movie["subjectId"]))
-    ]
+    if args.all:
+        todo = list(movies)
+    elif args.refetch:
+        wanted = set(args.refetch)
+        todo = [movie for movie in movies if movie["subjectId"] in wanted]
+        unknown = wanted - {movie["subjectId"] for movie in todo}
+        if unknown:
+            print(f"Not finished items in the export, ignored: {', '.join(sorted(unknown))}")
+    else:
+        todo = [
+            movie
+            for movie in movies
+            if needs_fetch(fixes.get(movie["subjectId"]), records.get(movie["subjectId"]))
+        ]
     print(f"{len(movies)} finished items, {len(records)} with a record, {len(todo)} to fetch.")
     if args.limit is not None:
         todo = todo[: args.limit]

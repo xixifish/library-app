@@ -64,9 +64,24 @@ def get_details(media_type, tmdb_id, original_language):
     """A film's or show's full details (/movie/{id} or /tv/{id}), in its original
     language, which picks the original-language poster. A show's details include
     the `seasons` list, with each season's `season_number`, `air_date` and
-    `poster_path`."""
-    params = {"language": original_language}
+    `poster_path`. `translations` comes along in the same request, for the English
+    and Chinese titles."""
+    params = {"language": original_language, "append_to_response": "translations"}
     return tmdb_get(f"/{media_type}/{tmdb_id}", params)
+
+
+def translated_title(response, language, region):
+    """The title in one language from a details response with `translations`, e.g.
+    ("en", "US") or ("zh", "CN"). TMDB leaves the original language's own entry
+    empty, so for that language the original title is used. None if there is none."""
+    original = response.get("original_title") or response.get("original_name")
+    if response.get("original_language") == language:
+        return original
+    for translation in response.get("translations", {}).get("translations", []):
+        if translation["iso_639_1"] == language and translation["iso_3166_1"] == region:
+            data = translation["data"]
+            return data.get("title") or data.get("name") or None
+    return None
 
 
 def get_tv_details(show_id, original_language):
@@ -87,6 +102,8 @@ def to_details(response, season_number):
     films and TV (record format: docs/fetch-examples.json, `selected.details`).
 
     - original_title: film `original_title`, TV `original_name`
+    - title_en, title_zh: English (en-US) and Simplified Chinese (zh-CN) titles, kept
+      for a possible language switch later; None where TMDB has none
     - release_date: film `release_date`, TV `first_air_date` (the show's start)
     - genre_ids: only the ids; the names come back in each item's own language
     - imdb_id: films only; TV details don't include it, so None
@@ -99,6 +116,8 @@ def to_details(response, season_number):
             season = {"air_date": found["air_date"], "poster_path": found["poster_path"]}
     return {
         "original_title": response.get("original_title") or response.get("original_name"),
+        "title_en": translated_title(response, "en", "US"),
+        "title_zh": translated_title(response, "zh", "CN"),
         "release_date": response.get("release_date")
         or response.get("first_air_date")
         or None,

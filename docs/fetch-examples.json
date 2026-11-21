@@ -37,6 +37,8 @@
       "original_language": "zh",
       "details": {
         "original_title": "黑炮事件",
+        "title_en": "The Black Cannon Incident",
+        "title_zh": "黑炮事件",
         "release_date": "1985-01-02",
         "genre_ids": [
           18,
@@ -79,6 +81,8 @@
       "original_language": "en",
       "details": {
         "original_title": "Slow Horses",
+        "title_en": "Slow Horses",
+        "title_zh": null,
         "release_date": "2022-04-01",
         "genre_ids": [
           80,
@@ -417,6 +421,8 @@
       "original_language": "zh",
       "details": {
         "original_title": "杨门女将",
+        "title_en": "Legendary Fighter: Yang's Heroine",
+        "title_zh": "杨门女将",
         "release_date": "2001-05-05",
         "genre_ids": [
           18,
