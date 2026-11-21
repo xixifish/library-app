@@ -30,7 +30,7 @@ from datetime import date
 import requests
 from dotenv import load_dotenv
 
-from douban import ROOT, build_fallback_query, build_search, load_finished_movies
+from douban import ROOT, build_fallback_query, build_search, load_finished_movies, parse_date
 from tmdb import get_details, get_tv_details, search_tmdb, to_details, find_season
 
 RECORDS = ROOT / "cache" / "tmdb-records.jsonl"
@@ -70,14 +70,15 @@ def year_of(date_text):
     return int(date_text[:4]) if date_text else None
 
 
-def select_candidate(search, candidates, douban_title):
+def select_candidate(search, candidates, douban_title, douban_date=None):
     """Pick the match by the year rule. Always returns two values:
     (candidate, details) for a season item, (candidate, None) for a film or a
     whole show (details come later), (None, None) if nothing passes (-> manual).
 
     - Film or whole show: among the candidates whose year is within 1 of Douban's,
       preferred in this order: the exact Douban Chinese title, then the smaller
-      year difference, then TMDB's order.
+      year difference, then the closer full date (if Douban's `info` starts with
+      one), then TMDB's order.
       (Without the title preference, a TV show that only contains the title, e.g.
       Transformers: Animated for 变形金刚, could come first and win.)
     - TV season: the first show whose season `search["season"]` aired within 1 year
@@ -111,11 +112,18 @@ def select_candidate(search, candidates, douban_title):
         return None, None
     # Best first: the exact Chinese title, then the smaller year difference, then
     # TMDB's order (min() keeps the earliest of equal candidates).
+    def days_apart(candidate):
+        candidate_date = parse_date(candidate["release_date"])
+        if douban_date is None or candidate_date is None:
+            return float("inf")  # no full dates to compare: leave it to TMDB's order
+        return abs((candidate_date - douban_date).days)
+
     best = min(
         passing,
         key=lambda candidate: (
             not same_title(candidate["title"], douban_title),
             abs(year_of(candidate["release_date"]) - search["year"]),
+            days_apart(candidate),
         ),
     )
     return best, None
@@ -212,13 +220,26 @@ def fetch_record(movie, fix=None, previous=None):
 
     search = record["search"]
     record["candidates"] = find_candidates(movie, search)
-    match, details = select_candidate(search, record["candidates"], movie["title"])
+    match, details = select_candidate(
+        search, record["candidates"], movie["title"], parse_date(movie["info"])
+    )
     if match is None:
         record["status"] = "manual"
     else:
         record["status"] = "matched"
         record["selected"] = build_selected(match, details, search)
     return record
+
+
+def tmdb_fix(fix):
+    """The part of a fixes.json entry that changes the TMDB match: entries with an
+    `id`, or `hidden` without one (checked, not on TMDB). Other fields, like
+    `marked_at`, are for the build step, so an entry with only those is None here."""
+    if fix is None:
+        return None
+    if "id" in fix or fix.get("hidden"):
+        return fix
+    return None
 
 
 def needs_fetch(fix, previous):
@@ -302,7 +323,7 @@ def main():
         todo = [
             movie
             for movie in movies
-            if needs_fetch(fixes.get(movie["subjectId"]), records.get(movie["subjectId"]))
+            if needs_fetch(tmdb_fix(fixes.get(movie["subjectId"])), records.get(movie["subjectId"]))
         ]
     print(f"{len(movies)} finished items, {len(records)} with a record, {len(todo)} to fetch.")
     if args.limit is not None:
@@ -313,7 +334,9 @@ def main():
         for number, movie in enumerate(todo, start=1):
             subject_id = movie["subjectId"]
             try:
-                record = fetch_record(movie, fixes.get(subject_id), records.get(subject_id))
+                record = fetch_record(
+                    movie, tmdb_fix(fixes.get(subject_id)), records.get(subject_id)
+                )
             except requests.HTTPError as error:
                 if status_code(error) == 401:
                     sys.exit("TMDB says 401 Unauthorized: check TMDB_TOKEN in .env")

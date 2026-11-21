@@ -14,7 +14,7 @@ import sys
 
 from dotenv import load_dotenv
 
-from douban import ROOT, build_search, load_finished_movies
+from douban import ROOT, build_search, load_finished_movies, parse_date
 from tmdb import find_season
 from fetch_tmdb import find_candidates, select_candidate
 
@@ -65,7 +65,9 @@ def main():
         movie = by_id[subject_id]
         search = build_search(movie)
         candidates = find_candidates(movie, search)
-        selected, details = select_candidate(search, candidates, movie["title"])
+        selected, details = select_candidate(
+            search, candidates, movie["title"], parse_date(movie["info"])
+        )
 
         print(f"\n{why}")
         print(f"  douban: {movie['title']} | {movie['originalTitle']!r} | {movie['info'][:20]!r}")

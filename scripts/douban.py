@@ -5,6 +5,7 @@ Rules: docs/requirements.md, "TMDB matching".
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent  # scripts/ → library-app/
@@ -13,6 +14,7 @@ RAW_MOVIES = ROOT / "raw" / "movies.json"
 # `info` starts with a full or partial date: "1986(中国大陆) / ...",
 # "2004-09(柏林电影节) / ...", "2026-09-16(英国) / ...". Only the year is needed.
 YEAR_AT_START = re.compile(r"^(\d{4})(?!\d)")
+FULL_DATE_AT_START = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
 
 # The season number comes from Douban's Chinese title: every season item has
 # "第X季" there, while `originalTitle` writes it many ways (or not at all).
@@ -54,6 +56,18 @@ def chinese_number(text):
         tens, _, ones = text.partition("十")
         return CHINESE_DIGITS.get(tens, 1) * 10 + CHINESE_DIGITS.get(ones, 0)
     return CHINESE_DIGITS[text]
+
+
+def parse_date(text):
+    """A full date at the start of the text ('2011-08-20(日本) / ...' or
+    '2011-08-20') as a date, or None if it isn't a full YYYY-MM-DD date."""
+    match = FULL_DATE_AT_START.match(text or "")
+    if not match:
+        return None
+    try:
+        return date(*map(int, match.groups()))
+    except ValueError:  # e.g. a month of 00
+        return None
 
 
 def parse_year(info):

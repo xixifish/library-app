@@ -70,10 +70,13 @@ Decided 2026-11-20, after testing 7 titles by hand with curl, then 21 titles wit
   - Films use `title` / `release_date`, TV uses `name` / `first_air_date`.
 - **Accept:** among the results whose year is within 1 of the year in Douban's `info`,
   the best one, in this order: (1) its (`zh-CN`) title is exactly Douban's Chinese
-  `title`; (2) the smaller year difference; (3) TMDB's order. A 1-year gap is normal:
+  `title`; (2) the smaller year difference; (3) the closer full date, when Douban's
+  `info` starts with one; (4) TMDB's order. A 1-year gap is normal:
   黑炮事件 is 1986 on Douban and 1985 on TMDB. The year tiebreak (2026-11-21) fixed 6
   matches where a same-year film lost to a TV version or sequel a year off
   (当男人恋爱时, 隧道, 画皮2, 勇敢者的游戏, 海贼王剧场版9, 反叛的童谣).
+  The date tiebreak (same day) fixed 5 more, e.g. 白兔糖 2011-08-20 → the live-action
+  film released that day, not the anime series.
   The title preference was added 2026-11-21 after the full run: ~170 matches weren't
   TMDB's first result, and ~12 of them were wrong, usually a TV show that only
   contains the title (变形金刚 → *Transformers: Animated*, 布鲁克林 → *Taxi Brooklyn*)
@@ -177,12 +180,15 @@ planned. TMDB data is refreshed at least every 6 months.
   - My own decisions go in `data/fixes.json`, keyed by Douban `subjectId`: a TMDB
     match (`id`, `media_type`, `season`), and/or `"hidden": true` to leave an item
     off the site. An entry with only `hidden` means checked and not on TMDB. No
-    `hidden` field means shown. (Decided 2026-11-20.)
+    `hidden` field means shown. (Decided 2026-11-20.) An entry can also give
+    `marked_at` (YYYY-MM-DD) for an item whose Douban record has none; the build
+    step uses it for the newest-first order (added 2026-11-21).
   - TMDB credit (logo + notice) on the site.
   - Each matched film/TV card links to its TMDB page, built from the saved
     `media_type`, `id` and season (e.g. `themoviedb.org/movie/176643`,
     `themoviedb.org/tv/95480/season/6`); no URL is stored (decided 2026-11-20).
-  - Ratings and comments: optional, may or may not show.
+  - No ratings or comments in v1: they stay private and are left out of the output
+    files (decided 2026-11-21).
 - **Out:** want-to-read/watch items, in-progress items, tags (only on 471 of 1,762
   watched films/TV and 147 of 472 read books; not useful for the site, left out of the output but
   still in the raw export).
@@ -199,17 +205,25 @@ planned. TMDB data is refreshed at least every 6 months.
   (see TMDB matching).
 - [x] Show Douban's Chinese title as a smaller second line under the original title?
   No: only the original title is shown (decided 2026-11-20).
-- [ ] For a TV season: show the season's poster or the show's poster?
-- [ ] Title format for a TV season: "Slow Horses Season 6", "Slow Horses · S6", or
-  something else?
+- [x] For a TV season: show the season's poster or the show's poster? The season's
+  poster if it has one, else the show's (decided 2026-11-21).
+- [x] Title format for a TV season: `Slow Horses S6` (decided 2026-11-21): TMDB's title
+  plus TMDB's season number (`selected.season`), the same numbering as the poster,
+  the link and future items added from TMDB.
 - [ ] Confirm in TMDB's image docs that linking to their image server is the intended use.
 - [ ] Does saving TMDB ids or poster addresses count as keeping data? If yes, how and
   how often to refresh (at least every 6 months).
-- [ ] Show ratings and comments in v1, or not?
-- [ ] Order inside each category: newest marked first?
-- [ ] A category with ~1,500 films is a long page: fine for v1, or does it need paging
-  or search?
-- [ ] The 2 films with no marked date: where do they go?
+- [x] Show ratings and comments in v1, or not? No, neither: they stay private, and the
+  output files leave them out (decided 2026-11-21).
+- [x] Order inside each category: newest marked first? Yes (decided 2026-11-21).
+- [x] A category with ~1,500 films is a long page: fine for v1, or does it need paging
+  or search? Paging for v1 (decided 2026-11-21); search later if needed.
+- [x] Two Douban items that point to the same TMDB item and season (e.g. both parts of
+  黑暗荣耀, which TMDB counts as one season): show both cards; it's only a few items
+  (decided 2026-11-21).
+- [x] The 2 films with no marked date: where do they go? Both (V字仇杀队, 采访) get
+  `marked_at: 2011-02-02` in `data/fixes.json` (decided 2026-11-21). Their Douban
+  records are nearly empty (no date, no `info`), so they also have TMDB fixes.
 - [ ] Items without a TMDB match: link to their Douban page (`url` in the raw data),
   or no link?
 - [ ] Where do my hand fixes (film/TV corrections, missing titles) live so that re-running the
