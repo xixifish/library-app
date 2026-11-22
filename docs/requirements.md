@@ -185,6 +185,9 @@ planned. TMDB data is refreshed at least every 6 months.
     `marked_at` (YYYY-MM-DD) for an item whose Douban record has none; the build
     step uses it for the newest-first order (added 2026-11-21).
   - TMDB credit (logo + notice) on the site.
+  - Getting the data to the site: after `scripts/build.py`, copy `output/film.json` and
+    `output/tv.json` into the site repo by hand, then commit and push; Vercel deploys.
+    The copies are never edited in the site (decided 2026-11-22).
   - Each matched film/TV card links to its TMDB page, built from the saved
     `media_type`, `id` and season (e.g. `themoviedb.org/movie/176643`,
     `themoviedb.org/tv/95480/season/6`); no URL is stored (decided 2026-11-20).
@@ -213,6 +216,11 @@ planned. TMDB data is refreshed at least every 6 months.
     sampled books, and Douban's cover links refuse other sites. The data is ready in
     `raw/books.json`; a draft book shape is in `docs/output-examples.json`.
   - A tool to record new books, films and TV myself, in this same repo, that updates the website.
+    Built after the v1 Library page is live on the site (decided 2026-11-22).
+    - Its master record lives in a database (SQLite first; hosted Postgres if I later
+      want to mark from my phone), started once the initial book data is clean. It is
+      private, so never in a public repo; only the generated output goes to the site.
+      (Decided 2026-11-22.)
     - Its own data is the master record: private, complete (ratings and comments
       included), with each item's full status history as a list, e.g.
       `[{"status": "want", "at": "2024-03-01"}, {"status": "done", "at": "2026-06-02"}]`.
