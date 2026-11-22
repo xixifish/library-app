@@ -1,11 +1,12 @@
 # Requirements: Douban Library
 
-Last updated: 2026-11-20 · Kickoff: short
+Last updated: 2026-11-22 · Kickoff: short
 
 ## Core need
 
 Show everything I've finished reading and watching, taken from my Douban export,
-on my website's Library page, grouped into book, film and TV.
+on my website's Library page, grouped into book, film and TV. v1 is film and TV;
+books come later (decided 2026-11-22).
 
 - **Problem:** my Douban history (~2,200 finished items) lives only on Douban. The
   website's Library shows 7 items I enter by hand.
@@ -162,21 +163,21 @@ planned. TMDB data is refreshed at least every 6 months.
 ## Scope
 
 - **In v1:**
-  - Library page with three categories: book, film, TV. Manga are shown under book
-    (decided 2026-11-19), so books need no type.
-  - Every finished item (read/watched) listed under its category.
-  - Film or TV for each film/TV item: an automatic first guess, then I fix mistakes by
-    hand. A TMDB match tells film from TV; otherwise "第X季" → TV.
+  - Library page with two categories: film and TV. Books are moved to Later
+    (decided 2026-11-22).
+  - Every finished (watched) item listed under its category.
+  - Film or TV for each item comes from its TMDB match; I fix wrong matches by hand.
   - Film/TV items that TMDB can't match safely go on a manual list for me to check,
-    instead of getting a guessed poster (rules in TMDB matching).
+    instead of getting a guessed poster (rules in TMDB matching). They are left out
+    of the output until I fix them in `data/fixes.json` (decided 2026-11-22; about 55
+    items at that point).
   - Each TV season is its own item (Douban lists seasons separately), not grouped
     under one show.
-  - Output: one JSON file per category (book, film, TV) with the most complete
-    data for each item. It doesn't need to match the current `data/library.ts` shape.
+  - Output: one JSON file per category (film, TV) with the chosen data for each
+    item. It doesn't need to match the current `data/library.ts` shape.
   - Film and TV covers from TMDB, shown from TMDB's image server, not stored.
-  - Book covers (manga included) added by hand over time, newest first.
-  - A simple placeholder card for any item without a cover. Unmatched film/TV
-    items are shown this way, with their Douban title, until I fix or hide them.
+  - A simple placeholder card for a matched item that has no poster on TMDB.
+    (Replaces the earlier plan to show unmatched items as placeholders, 2026-11-22.)
   - My own decisions go in `data/fixes.json`, keyed by Douban `subjectId`: a TMDB
     match (`id`, `media_type`, `season`), and/or `"hidden": true` to leave an item
     off the site. An entry with only `hidden` means checked and not on TMDB. No
@@ -188,12 +189,45 @@ planned. TMDB data is refreshed at least every 6 months.
     `media_type`, `id` and season (e.g. `themoviedb.org/movie/176643`,
     `themoviedb.org/tv/95480/season/6`); no URL is stored (decided 2026-11-20).
   - No ratings or comments in v1: they stay private and are left out of the output
-    files (decided 2026-11-21).
+    files (decided 2026-11-21). They are kept in my own records (the raw export now,
+    the marking tool's data later) for possible use later.
+  - Each output item has its current `status` and the date it was set (`marked_at`),
+    nothing more. Values are the same for every category: `want` / `in_progress` /
+    `done`; the site words them per category ("want to read", "watching"). In v1
+    every item is `done`. (Decided 2026-11-22.) Example output:
+    `docs/output-examples.json` (draft, being checked).
+  - Each output item has its own `id`, not a Douban one: Douban data is only used to
+    build the initial records, and items from the marking tool won't have a Douban
+    id. For imported items the value is the Douban `subjectId`, so it stays the same
+    every time the build runs. An id never changes once given. (Decided 2026-11-22.)
+  - Book, film and TV share one card component on the site. Each category's file
+    keeps its own fields; the site turns an item into the card's props with a small
+    function per category. The same meaning uses the same field name in every file
+    (`id`, `status`, `title`, `year`, `marked_at`). (Decided 2026-11-22.)
 - **Out:** want-to-read/watch items, in-progress items, tags (only on 471 of 1,762
   watched films/TV and 147 of 472 read books; not useful for the site, left out of the output but
   still in the raw export).
 - **Later:**
+  - Books (manga shown under book, decided 2026-11-19, so books need no type). First
+    find a workable open API for covers: Open Library had covers for only 3 of 15
+    sampled books, and Douban's cover links refuse other sites. The data is ready in
+    `raw/books.json`; a draft book shape is in `docs/output-examples.json`.
   - A tool to record new books, films and TV myself, in this same repo, that updates the website.
+    - Its own data is the master record: private, complete (ratings and comments
+      included), with each item's full status history as a list, e.g.
+      `[{"status": "want", "at": "2024-03-01"}, {"status": "done", "at": "2026-06-02"}]`.
+      The last entry is the current status. Items imported from Douban start with
+      one entry, since Douban gives one date. (Decided 2026-11-22.)
+    - The website output is built from it and gets only the latest status and its
+      date (see In v1).
+    - Douban is only the starting point: the current flow (raw + cache + fixes →
+      build) becomes a one-time import into this master record, and the build then
+      reads the master record. Imported items keep their `id`, and may keep
+      `douban_id` as an "imported from" note; `fixes.json` is replaced by editing
+      records in the tool. The website files keep the same shape.
+    - New items keep the poster in the language I searched in, not the original
+      language (decided 2026-11-22). Imported items keep their original-language
+      posters, so the library will mix both.
 
 ## Open questions
 
@@ -210,6 +244,10 @@ planned. TMDB data is refreshed at least every 6 months.
 - [x] Title format for a TV season: `Slow Horses S6` (decided 2026-11-21): TMDB's title
   plus TMDB's season number (`selected.season`), the same numbering as the poster,
   the link and future items added from TMDB.
+- [ ] The 6-month refresh requests details with `language=<original_language>`, which
+  would replace a marking-tool poster in the search language. Save the poster's
+  language per item so the refresh uses it, or accept the switch? (Only matters once
+  the marking tool exists.)
 - [ ] Confirm in TMDB's image docs that linking to their image server is the intended use.
 - [ ] Does saving TMDB ids or poster addresses count as keeping data? If yes, how and
   how often to refresh (at least every 6 months).
@@ -224,8 +262,8 @@ planned. TMDB data is refreshed at least every 6 months.
 - [x] The 2 films with no marked date: where do they go? Both (V字仇杀队, 采访) get
   `marked_at: 2011-02-02` in `data/fixes.json` (decided 2026-11-21). Their Douban
   records are nearly empty (no date, no `info`), so they also have TMDB fixes.
-- [ ] Items without a TMDB match: link to their Douban page (`url` in the raw data),
-  or no link?
+- [x] Items without a TMDB match: link to their Douban page, or no link? Neither:
+  they aren't shown until fixed (decided 2026-11-22).
 - [ ] Where do my hand fixes (film/TV corrections, missing titles) live so that re-running the
   script, e.g. for the 6-month TMDB refresh, doesn't overwrite them? Suggestion: a
   separate fixes file keyed by Douban id that the script applies last.

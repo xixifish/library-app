@@ -12,3 +12,4 @@ __pycache__/
 raw/
 # Fetched TMDB data: a regenerable cache, not published
 cache/
+output/
