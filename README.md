@@ -5,8 +5,7 @@ book I've finished reading and every film and TV season I've finished watching.
 
 ## What it does
 
-- Reads my Douban exports (about 470 finished books and 1,760 finished films and TV
-  seasons).
+- Reads my Douban exports of the books, films and TV seasons I've marked.
 - Keeps finished items only and sorts them into three categories: **book** (manga
   included), **film** and **TV**.
 - Looks up film and TV posters on [TMDB](https://www.themoviedb.org/). That match also
@@ -31,24 +30,34 @@ Later: a tool to record new books, films and TV here, which then updates the web
 ## Layout
 
 ```
-docs/       requirements and decisions
+docs/       requirements, decisions and test results
 scripts/    Python scripts
+data/       my hand-made fixes (data/fixes.json)
 raw/        my Douban exports (not in the repo, see below)
+cache/      data fetched from TMDB (not in the repo)
+output/     the generated JSON files for the website (not in the repo)
 ```
 
 ## Running
 
-The scripts use Python 3 and only its standard library.
+The scripts use Python 3 and the packages in `requirements.txt`. Set up a virtual
+environment once, then activate it before running a script:
 
 ```sh
-python3 scripts/explore.py
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+python3 scripts/fetch_tmdb.py   # look up TMDB matches into cache/
+python3 scripts/build.py        # write output/film.json and output/tv.json
 ```
 
 They read `raw/books.json` and `raw/movies.json`. These are my own exports and contain
 personal comments, so `raw/` is gitignored and not published. To run the scripts on your
 own data, put exports with the same shape there.
 
-TMDB needs an API key. Put it in a `.env` file (gitignored), never in the code.
+TMDB needs an API key: put `TMDB_TOKEN=<your Read Access Token>` in a `.env` file
+(gitignored), never in the code.
 
 ## Credits
 
