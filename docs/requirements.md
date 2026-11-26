@@ -1,12 +1,12 @@
 # Requirements: Douban Library
 
-Last updated: 2026-11-22 · Kickoff: short
+Last updated: 2026-11-26 · Kickoff: short
 
 ## Core need
 
 Show everything I've finished reading and watching, taken from my Douban export,
-on my website's Library page, grouped into book, film and TV. v1 is film and TV;
-books come later (decided 2026-11-22).
+on my website's Library page, grouped into book, film and TV. v1 publishes all three
+together (decided 2026-11-26, reversing the earlier "books later").
 
 - **Problem:** my Douban history (~2,200 finished items) lives only on Douban. The
   website's Library shows 7 items I enter by hand.
@@ -41,7 +41,8 @@ Read on 2026-11-18. My reading, not legal advice.
 | Films and TV I've marked | Douban export (纳豆), `raw/movies.json` | One-time export, already done | My own data | Yes: 1,878 records (1,762 watched, 95 want, 21 watching). Stars on 1,749, comments on 1,028, marked dates 2011–2026 (2 missing). Original title on 1,615. No covers, no film/TV type, no IMDb/TMDB id. Cast, year, country etc. in one `info` text. About 349 titles contain "第X季". |
 | Books I've marked | Douban list + detail pages, merged into `raw/books.json` (by `merge_books.py`, kept outside the repo) | One-time export, already done | My own data | Yes: 807 records (472 read, 331 want, 4 reading). ISBN on 806, stars on 467, comments on 317. Authors, publisher, date, pages, series as separate fields. Series on 419. No book/manga type. |
 | Covers via Douban image links | Douban (`doubanCover` in the book data) | Refused when requested from another site (403) | n/a | Yes: one book cover link tested |
-| Book covers by ISBN | Open Library | Public | Not checked | Yes: only 3 of 15 sampled read books had a cover (mostly Chinese/Taiwanese editions) |
+| Book covers by ISBN | Open Library, `covers.openlibrary.org/b/isbn/<ISBN>-L.jpg?default=false` (404 when none) | Public, no key; ISBN cover lookups are rate-limited (about 100 per 5 minutes) | Not checked | Yes: only 3 of 15 sampled read books had a cover (mostly Chinese/Taiwanese editions). 2026-11-26: large covers for 5 of 10 English books, none for Chinese (titles in pinyin). See `docs/book-api-test.md` |
+| Book data + covers by ISBN or title/author | Google Books API, `/books/v1/volumes?q=isbn:<ISBN>` or `q=intitle:...+inauthor:...` | API key required (anonymous quota is 0); key in `.env` as `GOOGLE_BOOKS_API_KEY` | Not checked | Yes, 2026-11-26 (`docs/book-api-test.md`): English found 8 of 12 by ISBN, but most covers only 128 px (larger sizes return an "image not available" picture); 6 mainland/Taiwan books found, none with a cover, data thin or wrong; search lists every edition, order unstable |
 | Film and TV posters | TMDB API, `/search/multi` by original title or title (see TMDB matching) | Free API key from TMDB account settings, sent as `Authorization: Bearer <Read Access Token>` | Yes, non-commercial with attribution; no keeping data over 6 months (see rules above) | Yes: 7 titles searched by hand on 2026-11-20, 6 matched by the rule, 1 needs a person |
 | Book covers (manga included) | Downloaded by me, by hand | Manual | My call | n/a |
 
@@ -163,8 +164,20 @@ planned. TMDB data is refreshed at least every 6 months.
 ## Scope
 
 - **In v1:**
-  - Library page with two categories: film and TV. Books are moved to Later
-    (decided 2026-11-22).
+  - Library page with three categories: book (manga included, decided 2026-11-19, so
+    books need no type), film and TV, published together: film/TV output waits for
+    books (decided 2026-11-26).
+  - Imported books: title, authors and year from Douban (`raw/books.json`); only the
+    cover comes from **Google Books only**, looked up by ISBN (`zoom=2` unless it is the
+    "image not available" picture, else `zoom=1`, often only 128 px wide). Books with no
+    Google cover are **not shown** in v1 (in practice most Chinese books and manga);
+    they stay in the raw export and can be added later with the marking tool, where
+    any cover can be fixed by hand. (Decided 2026-11-26 after the test in
+    `docs/book-api-test.md`. Using one API keeps it simple; Open Library had larger
+    covers for about half the English books and is a possible later addition.)
+    Book examples are in `docs/output-examples.json` (see below).
+  - Order: test a book cover source → book fetch + build (`output/book.json`) →
+    Library page with all three categories → marking tool (decided 2026-11-22/26).
   - Every finished (watched) item listed under its category.
   - Film or TV for each item comes from its TMDB match; I fix wrong matches by hand.
   - Film/TV items that TMDB can't match safely go on a manual list for me to check,
@@ -185,20 +198,26 @@ planned. TMDB data is refreshed at least every 6 months.
     `marked_at` (YYYY-MM-DD) for an item whose Douban record has none; the build
     step uses it for the newest-first order (added 2026-11-21).
   - TMDB credit (logo + notice) on the site.
-  - Getting the data to the site: after `scripts/build.py`, copy `output/film.json` and
-    `output/tv.json` into the site repo by hand, then commit and push; Vercel deploys.
+  - Getting the data to the site: after `scripts/build.py`, copy `output/film.json`,
+    `output/tv.json` and `output/book.json` into the site repo by hand, then commit and push; Vercel deploys.
     The copies are never edited in the site (decided 2026-11-22).
   - Each matched film/TV card links to its TMDB page, built from the saved
     `media_type`, `id` and season (e.g. `themoviedb.org/movie/176643`,
     `themoviedb.org/tv/95480/season/6`); no URL is stored (decided 2026-11-20).
   - No ratings or comments in v1: they stay private and are left out of the output
     files (decided 2026-11-21). They are kept in my own records (the raw export now,
-    the marking tool's data later) for possible use later.
+    the marking tool's data later) for possible use later. When they are shown later
+    (decided 2026-11-26): ratings with **one setting for all items** (all shown or
+    none, no per-item switch); comments **per item**, only those with
+    `comment_public: true` (default false), so nothing is published by accident.
+    Where the ratings setting lives (export option, tool setting) is open.
   - Each output item has its current `status` and the date it was set (`marked_at`),
     nothing more. Values are the same for every category: `want` / `in_progress` /
     `done`; the site words them per category ("want to read", "watching"). In v1
     every item is `done`. (Decided 2026-11-22.) Example output:
-    `docs/output-examples.json` (draft, being checked).
+    `docs/output-examples.json`. Since 2026-11-26 that file is **private and gitignored**:
+    it holds complete examples of both the private master record (`record`, with real
+    ratings and comments) and the website output (`output`), for film, TV and book.
   - Each output item has its own `id`, not a Douban one: Douban data is only used to
     build the initial records, and items from the marking tool won't have a Douban
     id. For imported items the value is the Douban `subjectId`, so it stays the same
@@ -207,20 +226,46 @@ planned. TMDB data is refreshed at least every 6 months.
     keeps its own fields; the site turns an item into the card's props with a small
     function per category. The same meaning uses the same field name in every file
     (`id`, `status`, `title`, `year`, `marked_at`). (Decided 2026-11-22.)
+  - Book fields (decided 2026-11-26, examples in `docs/output-examples.json`): the
+    record keeps the cover as `{url, source}` (source `google_books` now, my own
+    upload later) and `pub_date` in one format (`YYYY`, `YYYY-MM` or `YYYY-MM-DD`,
+    converted from Douban's mixed formats on import). The book output has `id`,
+    `status`, `title`, `authors`, `year` (from `pub_date`), `marked_at` and `cover_url`
+    (a full URL, unlike films' `poster_path`). Still open: falling back to Douban's
+    title when TMDB has no Chinese title; the id format for items created in the tool.
 - **Out:** want-to-read/watch items, in-progress items, tags (only on 471 of 1,762
   watched films/TV and 147 of 472 read books; not useful for the site, left out of the output but
   still in the raw export).
 - **Later:**
-  - Books (manga shown under book, decided 2026-11-19, so books need no type). First
-    find a workable open API for covers: Open Library had covers for only 3 of 15
-    sampled books, and Douban's cover links refuse other sites. The data is ready in
-    `raw/books.json`; a draft book shape is in `docs/output-examples.json`.
   - A tool to record new books, films and TV myself, in this same repo, that updates the website.
     Built after the v1 Library page is live on the site (decided 2026-11-22).
-    - Its master record lives in a database (SQLite first; hosted Postgres if I later
-      want to mark from my phone), started once the initial book data is clean. It is
-      private, so never in a public repo; only the generated output goes to the site.
-      (Decided 2026-11-22.)
+    - Its master record lives in a **hosted database online**, not on my laptop
+      (decided 2026-11-26; replaces "SQLite first, hosted later" from 2026-11-22). Reasons:
+      I can record items from anywhere, including my phone, and the data can be used by
+      more things later (an API, the website reading it live, other tools). It is
+      private, so never in a public repo, and the website may only see the public fields.
+    - Path (decided 2026-11-26): build it **locally on SQLite first**, then move it to
+      **Turso** (hosted SQLite, same SQL and client library; the move is a change of the
+      database URL in `.env` plus uploading the database file) once the first version
+      works. Before it goes online it gets **Google sign-in that lets only my account
+      in**; it never runs online without login. Built "online-ready" from the start: a
+      stack that can be deployed (e.g. Next.js on Vercel, like the site), database URL
+      and keys in `.env`, and uploaded cover files kept behind one small function so
+      they can move to online storage later.
+      Still open: whether the site reads the database live or through my own API, or
+      keeps reading exported JSON at first; where uploaded cover files live online;
+      whether the tool comes before or after the v1 Library page.
+    - First version planned (2026-11-26): it imports all Douban records (films, TV,
+      books) with their API matches; I can see each item's Douban data next to its API
+      data (poster/cover), change a wrong match, edit fields, or hide an item. Later:
+      search per category that pre-fills a new item from an API, or create it by hand.
+    - Editing in the tool (decided 2026-11-26): `id` and `douban_id` are read-only.
+      Rating, comment, `comment_public`, `hidden` and every book field are editable.
+      Status changes go through actions (add a status with a date, fix or remove an
+      entry), not by editing the list. A wrong match is fixed with "change match",
+      which fetches the new item's details. Film/TV fields from TMDB (titles, dates,
+      posters, season) are not editable, since the 6-month refresh would overwrite
+      them; overrides (e.g. `title_override`) can be added later if a real case needs one.
     - Its own data is the master record: private, complete (ratings and comments
       included), with each item's full status history as a list, e.g.
       `[{"status": "want", "at": "2024-03-01"}, {"status": "done", "at": "2026-06-02"}]`.
@@ -233,6 +278,12 @@ planned. TMDB data is refreshed at least every 6 months.
       reads the master record. Imported items keep their `id`, and may keep
       `douban_id` as an "imported from" note; `fixes.json` is replaced by editing
       records in the tool. The website files keep the same shape.
+    - Books are my own records, not references to an API (decided 2026-11-26): title,
+      authors, year, ISBN and a cover file I keep. The tool may search Google Books
+      to **pre-fill** the form (data plus a few cover choices); I correct it or type it
+      in, e.g. for Chinese books and manga that no API has. The Google id is an
+      optional note. Other APIs (e.g. Open Library) are a later task (2026-11-26). Films/TV stay linked
+      to TMDB.
     - New items keep the poster in the language I searched in, not the original
       language (decided 2026-11-22). Imported items keep their original-language
       posters, so the library will mix both.
@@ -276,3 +327,32 @@ planned. TMDB data is refreshed at least every 6 months.
   script, e.g. for the 6-month TMDB refresh, doesn't overwrite them? Suggestion: a
   separate fixes file keyed by Douban id that the script applies last.
 - [ ] What is `library-app/` for?
+- [x] Book covers: does Google Books find my books by ISBN and by title/author, with
+  real covers (not its "image not available" picture) of the right edition? Test by
+  hand on ~10 books (English, mainland, Taiwan, manga) before any book code.
+  Sample (subjectId / ISBN): 30355759 / 9780735211292 Atomic Habits; 35563599 /
+  9781098103965 Python for Data Analysis 3rd Ed; 27062726 / 9787516812969 贾想 I;
+  25870991 / 9787513903318 曾国藩的正面与侧面; 26830207 / 9787115427847 设计师要懂心理学2;
+  1361873 / 9789574918034 一個女人兩張床; 3114540 / 9789571020112 浪人劍客(03);
+  26881891 / 9789865824662 深夜食堂 17; 10345414 / 9789882070370 浪客行 18 (Hong Kong);
+  4828606 / 9783469351579 異獸魔都(14) (978-3 is a German prefix, likely bad Douban data).
+  For each book note: found by ISBN? found by title+author? real cover? title/author/year
+  correct and complete compared with Douban? **Done 2026-11-26**, plus 8 more English
+  books and Open Library on the same books; results in `docs/book-api-test.md`. In short:
+  no single API has good data and covers for all my books. Google finds English books but
+  mostly gives small covers; Open Library has large covers for about half the English
+  books; neither has covers for Chinese books, and their Chinese data is thin or wrong.
+- [x] Book metadata (title, authors, year): from the API like films, or from Douban for
+  imported books? **From Douban** (decided 2026-11-26, after the test; this replaces
+  "from the API", decided earlier the same day). The test showed no API with good data
+  for all my books, so in the marking tool books are my own records (see Later), and
+  Douban's human-curated data (right volume numbers and authors) is the closer match
+  for imported books. Only covers come from APIs. Books without a cover are not shown
+  in v1 (see In v1); this is acceptable because they are mostly older Chinese books
+  (no English-ISBN books before 2016; most books marked in 2024–2025 are English).
+- [x] The marking tool can't find a book no API has: hand entry or a second source?
+  Both, by design: book records are my own, API search only pre-fills the form
+  (decided 2026-11-26, see Later).
+- [ ] Book covers for the import: show them from Google's image server (like TMDB
+  posters), or download once and store the files? Check Google Books' terms. The marking tool will store its own cover files either way; where
+  (site repo `public/`, a storage service) is open too.

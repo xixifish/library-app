@@ -13,15 +13,18 @@ book I've finished reading and every film and TV season I've finished watching.
   tells film from TV. Without a match, a title with "第X季" counts as TV.
 - Writes one JSON file per category, for the website to show newest first.
 
-Book covers are added by hand over time. Items without a cover get a placeholder card.
+Book titles and authors come from Douban; covers are looked up by ISBN on Google Books. Books without a cover are left
+out for now.
 
 ## Status
 
 - [x] Requirements: [`docs/requirements.md`](docs/requirements.md)
 - [x] Step 1: explore the data (`scripts/explore.py`)
 - [x] Step 2: test TMDB matching on about 20 titles (`scripts/test_matching.py`)
-- [ ] Build the JSON files
-- [ ] Show them on the website
+- [x] Build the film and TV JSON files (`scripts/build.py`)
+- [x] Test a book cover source ([`docs/book-api-test.md`](docs/book-api-test.md))
+- [ ] Build the book JSON file
+- [ ] Show all three on the website
 
 Later: a tool to record new books, films and TV here, which then updates the website.
 

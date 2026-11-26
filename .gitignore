@@ -13,3 +13,5 @@ raw/
 # Fetched TMDB data: a regenerable cache, not published
 cache/
 output/
+# Private examples (real ratings and comments)
+docs/output-examples.json
